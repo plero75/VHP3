@@ -1,68 +1,38 @@
 body {
-  font-family: Arial, sans-serif;
+  font-family: sans-serif;
   margin: 0;
   padding: 0;
-  background: #f2f2f2;
-  color: #333;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  background: #f8f8f8;
 }
 
-header {
-  background: #222;
-  color: white;
-  width: 100%;
-  text-align: center;
-  padding: 1rem;
-  font-size: 1.5rem;
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: min-content;
+  gap: 16px;
+  padding: 20px;
 }
 
-.panel {
+.bloc {
   background: white;
-  margin: 1rem 0;
-  padding: 1.2rem;
-  width: 92%;
-  max-width: 720px;
-  border-left: 10px solid #00857c;
   border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  transition: transform 0.2s ease;
-}
-
-.panel:hover {
-  transform: scale(1.01);
-}
-
-.panel h2 {
-  margin-top: 0;
-  margin-bottom: 0.8rem;
-  font-size: 1.3rem;
-  color: #005b4f;
-}
-
-.schedule, #weather, #traffic {
-  font-size: 1.1rem;
-  line-height: 1.5rem;
-}
-
-iframe {
-  border: none;
-  border-radius: 8px;
+  padding: 16px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-@media screen and (max-width: 480px) {
-  .panel {
-    width: 96%;
-    padding: 1rem;
-  }
+.bloc-titre {
+  font-weight: bold;
+  margin-bottom: 10px;
+  font-size: 1.1em;
+}
 
-  .panel h2 {
-    font-size: 1.1rem;
-  }
+.title-line {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
 
-  .schedule, #weather, #traffic {
-    font-size: 1rem;
-  }
+.icon-inline {
+  height: 20px;
+  vertical-align: middle;
+  margin-right: 5px;
 }
