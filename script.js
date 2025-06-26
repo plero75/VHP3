@@ -1,3 +1,58 @@
+// ===================
+//  GTFS CACHE MODULE
+// ===================
+
+const GTFS_CACHE_KEY = "gtfsCache";
+
+async function loadGTFS(lineKey, stopId) {
+  const cache = getCachedGTFS();
+  const today = new Date().toISOString().split("T")[0];
+
+  if (cache?.lastUpdate === today && cache.lines?.[lineKey]) {
+    return cache.lines[lineKey];
+  }
+
+  const url = `https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https://data.iledefrance-mobilites.fr/explore/dataset/offre-horaires-tc-gtfs-idfm/download/?format=json&timezone=Europe/Paris`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const trips = data.filter(entry => entry.stop_point_id?.includes(stopId));
+    if (!trips.length) throw new Error("GTFS: aucun trip trouvé.");
+
+    const times = trips.map(t => t.departure_time).sort();
+    const stopsSet = new Set();
+    trips.forEach(t => {
+      if (t.stop_name) stopsSet.add(t.stop_name);
+    });
+
+    const result = {
+      first: times[0],
+      last: times[times.length - 1],
+      stops: Array.from(stopsSet)
+    };
+
+    const newCache = {
+      lastUpdate: today,
+      lines: { ...cache?.lines, [lineKey]: result }
+    };
+    localStorage.setItem(GTFS_CACHE_KEY, JSON.stringify(newCache));
+    return result;
+  } catch (e) {
+    console.error("Erreur chargement GTFS", e);
+    return null;
+  }
+}
+
+function getCachedGTFS() {
+  try {
+    const raw = localStorage.getItem(GTFS_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 // =============================
 //  CONFIGURATION & CONSTANTES
 // =============================
