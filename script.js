@@ -190,10 +190,13 @@ async function renderDepartures(elementId, stopKey) {
     const visits = data?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || [];
 
     if (!visits.length) {
-      document.getElementById(elementId).innerHTML = `
-        <div class='title-line'><img src='${block.icon}' class='icon-inline'>${block.name}</div>
-        <ul><li>✅ Service terminé — reprise prévue demain</li></ul>`;
-      return;
+      const gtfs = await loadGTFS(stopKey, STOP_POINTS[stopKey].url.split("MonitoringRef=")[1].split("&")[0]);
+
+const nextTime = gtfs?.first ? `⏳ Reprise prévue à ${gtfs.first}` : "Pas d'horaire théorique connu";
+document.getElementById(elementId).innerHTML = `
+  <div class='title-line'><img src='${block.icon}' class='icon-inline'>${block.name}</div>
+  <ul><li>✅ Service terminé — ${nextTime}</li></ul>`;
+
     }
 
     const items = visits.slice(0, 4).map(v => {
