@@ -36,9 +36,23 @@
       font-style: italic;
     }
     .block-content {
+      white-space: pre-line; /* respecte les sauts de ligne \n */
+      line-height: 1.5;
       font-size: 1em;
-      line-height: 1.4;
-      word-break: break-word;
+      color: #222;
+    }
+    .block-content br {
+      margin-bottom: 0.5em;
+      display: block;
+    }
+    .block-content span.line {
+      display: block;
+      margin-bottom: 0.5em;
+    }
+    .block-content .traffic-info {
+      margin-top: 1em;
+      font-weight: bold;
+      color: #d9534f; /* rouge doux */
     }
     @media (max-width: 600px) {
       .container {
