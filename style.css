@@ -41,3 +41,31 @@ body { font-family: sans-serif; padding: 1em; }
     grid-template-columns: 1fr;
   }
 }
+
+             .block-content {
+  white-space: pre-line; /* respecte les sauts de ligne \n */
+  line-height: 1.5;
+  font-size: 1em;
+  color: #222;
+}
+
+.block-content br {
+  margin-bottom: 0.5em;
+  display: block;
+}
+
+.block-content span.line {
+  display: block;
+  margin-bottom: 0.5em;
+}
+
+.block-content .time-direction {
+  margin-bottom: 0.3em;
+}
+
+.block-content .traffic-info {
+  margin-top: 1em;
+  font-weight: bold;
+  color: #d9534f; /* rouge doux */
+}
+
