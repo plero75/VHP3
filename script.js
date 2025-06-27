@@ -5,7 +5,6 @@ const VELIB_IDS = {
   breuil: "508042092"
 };
 
-// MonitoringRefs officiels extraits du référentiel
 const STOP_IDS = {
   rer_joinville: ["STIF:StopPoint:Q:39406:"],
   bus77_hippo: ["STIF:StopPoint:Q:463640:", "STIF:StopPoint:Q:463647:"],
@@ -18,10 +17,7 @@ async function fetchWithTimeout(resource, options = {}, timeout = 8000, retries 
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
     try {
-      const response = await fetch(resource, {
-        ...options,
-        signal: controller.signal
-      });
+      const response = await fetch(resource, {...options, signal: controller.signal});
       clearTimeout(id);
       return response;
     } catch (e) {
@@ -61,9 +57,7 @@ async function fetchRealTime(stopAreaId) {
 
 async function processTrips(stopIds) {
   const results = await Promise.all(stopIds.map(id => fetchRealTime(id)));
-  const trips = results.flatMap(realTime =>
-    realTime?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || []
-  );
+  const trips = results.flatMap(rt => rt?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || []);
   trips.sort((a, b) => {
     const aTime = new Date(a.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime);
     const bTime = new Date(b.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime);
@@ -136,9 +130,9 @@ function updateElementText(elementId, text) {
 }
 
 function updateGlobalDateTime() {
-  const now = new Date();
   const el = document.getElementById("current-time");
   if (el) {
+    const now = new Date();
     el.textContent = `🕒 ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
   }
 }
