@@ -113,7 +113,74 @@ async function fetchPrimInfo(line) {
   }
 }
 
-// (Les fonctions fetchWeather, fetchTrafficRoad, fetchVelib restent identiques à ta dernière version)
+async function fetchVelib(stationId, elementId) {
+  setLoading(elementId);
+  const url = `${CORS_PROXY}https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json`;
+  try {
+    const data = await fetchWithRetry(url);
+    const station = data?.data?.stations?.find(s => s.station_id === stationId);
+    if (station) {
+      const types = station.num_bikes_available_types || [];
+      let mec = 0, elec = 0;
+      types.forEach(t => {
+        if (t.vehicle_type_id === 1) mec = t.bikes_available;
+        if (t.vehicle_type_id === 2) elec = t.bikes_available;
+      });
+      const total = station.num_bikes_available;
+      const docks = station.num_docks_available;
+      const html = `
+        🚲 ${total} vélos disponibles :
+        <img src="img/velibmec.png" alt="Mécaniques" style="height:20px;"> ${mec} &nbsp;
+        <img src="img/velibelec.png" alt="Électriques" style="height:20px;"> ${elec} &nbsp;
+        🅿️ ${docks} bornes libres
+      `;
+      document.querySelector(elementId).innerHTML = html;
+    } else {
+      document.querySelector(elementId).innerHTML = "⚠️ Station Vélib introuvable ou indisponible.";
+    }
+    updateTimestamp(elementId);
+  } catch (e) {
+    console.error(e);
+    document.querySelector(elementId).textContent = `Erreur : ${e.message}`;
+  }
+}
+
+async function fetchWeather() {
+  setLoading("#meteo");
+  const url = `${CORS_PROXY}https://api.open-meteo.com/v1/forecast?latitude=48.835&longitude=2.43&current=temperature_2m,weathercode&timezone=Europe%2FParis`;
+  try {
+    const data = await fetchWithRetry(url);
+    const temp = data.current.temperature_2m;
+    const code = data.current.weathercode;
+    const desc = {
+      0:"Ciel clair",1:"Principalement clair",2:"Partiellement nuageux",3:"Couvert",45:"Brouillard",
+      51:"Bruine",61:"Pluie légère",80:"Averses",95:"Orages"
+    }[code] || "Inconnu";
+    const iconSrc = `img/${code}.png`;
+    document.querySelector("#meteo").innerHTML = `
+      <img src="${iconSrc}" alt="Météo" style="height:48px;vertical-align:middle;margin-right:8px;">
+      🌡 ${temp}°C, ${desc}
+    `;
+    updateTimestamp("#meteo");
+  } catch (e) {
+    console.error(e);
+    document.querySelector("#meteo").textContent = `Erreur : ${e.message}`;
+  }
+}
+
+async function fetchTrafficRoad() {
+  setLoading("#trafic");
+  const url = `${CORS_PROXY}https://data.opendatasoft.com/api/records/1.0/search/?dataset=etat-de-circulation-en-temps-reel-sur-le-reseau-national-routier-non-concede&q=&rows=5&facet=route`;
+  try {
+    const data = await fetchWithRetry(url);
+    const infos = data.records.map(r => `🛣 ${r.fields.route} : ${r.fields.etat_circulation}`).join("<br>");
+    document.querySelector("#trafic").innerHTML = infos || "✅ Trafic normal";
+    updateTimestamp("#trafic");
+  } catch (e) {
+    console.error(e);
+    document.querySelector("#trafic").textContent = `Erreur : ${e.message}`;
+  }
+}
 
 async function updateLines() {
   await Promise.all(LINES.map(line => Promise.all([
