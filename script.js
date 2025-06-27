@@ -59,53 +59,38 @@ async function fetchTrafficRoad() {
   const now = new Date().toLocaleString();
   document.getElementById("traffic-road-update").textContent = `Dernière mise à jour : ${now}`;
   const url = "https://data.opendatasoft.com/api/records/1.0/search/?dataset=etat-de-circulation-en-temps-reel-sur-le-reseau-national-routier-non-concede&q=&rows=10&facet=route";
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Erreur trafic routier ${res.status}`);
-  const data = await res.json();
-  const infos = data.records
-    .map(r => `🛣 ${r.fields.route} : ${r.fields.etat_circulation}`)
-    .join("\n");
-  document.getElementById("traffic-road").textContent = infos || "✅ Trafic normal";
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Erreur trafic routier ${res.status}`);
+    const data = await res.json();
+    const infos = data.records
+      .map(r => `🛣 ${r.fields.route} : ${r.fields.etat_circulation}`)
+      .join("\n");
+    document.getElementById("traffic-road").textContent = infos || "✅ Trafic normal";
+  } catch (e) {
+    console.warn("fetchTrafficRoad failed:", e);
+    document.getElementById("traffic-road").textContent = "⚠️ Impossible de récupérer le trafic routier.";
+  }
 }
 
 async function updateStop(elementId, stopId, lineId) {
   const now = new Date().toLocaleString();
   document.getElementById(`${elementId}-update`).textContent = `Dernière mise à jour : ${now}`;
+
   const realTime = await fetchRealTime(stopId);
   const trips = realTime.Siri.ServiceDelivery.StopMonitoringDelivery[0].MonitoredStopVisit || [];
+
   const nextTrips = trips.slice(0, 4).map(t => {
-    const aimed = new Date(t.MonitoredVehicleJourney.MonitoredCall.AimedDepartureTime);
-    const expected = new Date(t.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime);
-    const delay = (expected - aimed) / 60000;
+    const aimedRaw = t.MonitoredVehicleJourney.MonitoredCall.AimedDepartureTime;
+    const expectedRaw = t.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime;
+    const aimed = aimedRaw ? new Date(aimedRaw) : null;
+    const expected = new Date(expectedRaw);
+
+    const delay = aimed ? (expected - aimed) / 60000 : 0;
     const timeLeft = Math.round((expected - new Date()) / 60000);
-    const delayStr = delay > 0 ? ` (retard +${Math.round(delay)} min)` : "";
+    const delayStr = delay > 1 ? ` (retard +${Math.round(delay)} min)` : "";
     const imminent = timeLeft <= 1.5 ? "🟢 imminent" : "";
-    return `🕐 ${aimed.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} → ${expected.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} ⏳ dans ${timeLeft} min${delayStr} ${imminent}`;
-  }).join("\n");
-  document.getElementById(elementId).textContent = nextTrips || "❌ Aucun passage";
+    const aimedStr = aimed ? aimed.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : "—";
+    const expectedStr = expected.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 
-  const traffic = await fetchTraffic(lineId);
-  const disruptions = traffic.Siri.ServiceDelivery.GeneralMessageDelivery[0].InfoMessage || [];
-  const trafficInfo = disruptions.map(d => d.InfoMessageText?.[0]?.value).join("\n\n");
-  document.getElementById(`${elementId}-traffic`).textContent = trafficInfo || "✅ Pas de perturbation signalée";
-}
-
-async function refreshAll() {
-  try {
-    updateGlobalDateTime();
-    await Promise.all([
-      updateStop("rer-joinville", "STIF:StopArea:SP:43135:", "STIF:Line::C01742:"),
-      updateStop("bus77-hippo", "STIF:StopArea:SP:463641:", "STIF:Line::C01789:"),
-      updateStop("bus201-breuil", "STIF:StopArea:SP:463644:", "STIF:Line::C01805:"),
-      fetchVelib("12128", "velib-vincennes"),
-      fetchVelib("12163", "velib-breuil"),
-      fetchWeather(),
-      fetchTrafficRoad()
-    ]);
-  } catch (e) {
-    console.error("Erreur refreshAll:", e);
-  }
-}
-
-refreshAll();
-setInterval(refreshAll, 60000); // refresh every minute
+    return `🕐 ${aimedStr} → ${expectedStr} ⏳ dans ${timeLeft}
