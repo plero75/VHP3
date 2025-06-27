@@ -5,14 +5,11 @@ const VELIB_IDS = {
   breuil: "508042092"
 };
 
-// Exemple de MonitoringRefs pour les deux sens de chaque arrêt
+// MonitoringRefs officiels extraits du référentiel
 const STOP_IDS = {
   rer_joinville: ["STIF:StopPoint:Q:39406:"],
   bus77_hippo: ["STIF:StopPoint:Q:463640:", "STIF:StopPoint:Q:463647:"],
   bus201_breuil: ["STIF:StopPoint:Q:463646:", "STIF:StopPoint:Q:463643:"],
-};
-
-
 };
 
 async function fetchWithTimeout(resource, options = {}, timeout = 8000, retries = 2) {
