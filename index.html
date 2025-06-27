@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard Temps Réel IDFM & Vélib'</title>
+  <title>Dashboard Temps Réel Transports & Météo</title>
   <style>
     body {
       font-family: sans-serif;
@@ -19,48 +19,51 @@
     }
     h2 { margin-top: 0; }
     .info { font-size: 0.9em; color: #555; }
+    h2 img { height: 24px; vertical-align: middle; margin-right: 8px; }
   </style>
 </head>
 <body>
 
-  <h1>🚌 Dashboard Temps Réel Transports & Vélib’</h1>
+  <h1>🚌 Dashboard Temps Réel Transports & Météo</h1>
 
   <section>
-    <h2>🚆 RER A</h2>
+    <h2><img src="img/picto-rer-a.svg" alt="RER A"> RER A</h2>
     <div id="rer-a">Chargement...</div>
     <div class="info" id="info-rer-a"></div>
   </section>
 
   <section>
-    <h2>🚌 Bus 77</h2>
+    <h2><img src="img/picto-bus.svg" alt="Bus 77"> Bus 77</h2>
     <div id="bus-77">Chargement...</div>
     <div class="info" id="info-bus-77"></div>
   </section>
 
   <section>
-    <h2>🚌 Bus 201</h2>
+    <h2><img src="img/picto-bus.svg" alt="Bus 201"> Bus 201</h2>
     <div id="bus-201">Chargement...</div>
     <div class="info" id="info-bus-201"></div>
   </section>
 
   <section>
-    <h2>🌤 Météo locale</h2>
+    <h2><img src="img/picto-meteo.svg" alt="Météo"> Météo locale</h2>
     <div id="meteo">Chargement...</div>
   </section>
 
   <section>
-    <h2>🚗 Trafic routier</h2>
+    <h2><img src="img/picto-info.svg" alt="Trafic"> Trafic routier</h2>
     <div id="trafic">Chargement...</div>
   </section>
 
   <section>
-    <h2>🚲 Vélib’ Vincennes</h2>
+    <h2><img src="img/picto-velib.svg" alt="Vélib"> Vélib’ Vincennes</h2>
     <div id="velib-vincennes">Chargement...</div>
   </section>
 
   <section>
-    <h2>🚲 Vélib’ Breuil</h2>
+    <h2><img src="img/picto-velib.svg" alt="Vélib"> Vélib’ Breuil</h2>
     <div id="velib-breuil">Chargement...</div>
   </section>
 
-  <script src="scri
+  <script src="script.js"></script>
+</body>
+</html>
