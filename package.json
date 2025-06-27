@@ -1,0 +1,8 @@
+{
+  "type": "module",
+  "dependencies": {
+    "unzipper": "^0.10.11",
+    "csv-parser": "^3.0.0",
+    "luxon": "^3.4.3"
+  }
+}
