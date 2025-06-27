@@ -3,53 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Dashboard Temps Réel - Transports & Actualités</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #f0f0f0;
-      margin: 20px;
-      color: #333;
-    }
-    section {
-      background: white;
-      border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    h2 { margin-top: 0; }
-
-    #alerts {
-      color: red;
-      font-weight: bold;
-      font-size: 1.2em;
-      margin-bottom: 20px;
-    }
-
-    /* Bandeau actualités */
-    #rss-news {
-      overflow: hidden;
-      white-space: nowrap;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    #rss-news ul {
-      display: inline-block;
-      padding: 0;
-      margin: 0;
-      animation: scroll-left 45s linear infinite;
-    }
-    #rss-news li {
-      display: inline;
-      font-size: 2em;
-      margin-right: 50px;
-      color: #222;
-    }
-    @keyframes scroll-left {
-      0% { transform: translateX(100%); }
-      100% { transform: translateX(-100%); }
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
@@ -58,31 +12,22 @@
   <div id="alerts"></div>
 
   <section>
-    <h2>📰 Actualités</h2>
-    <div id="rss-news">Chargement...</div>
-  </section>
-
-  <section>
-    <h2>🚆 RER A</h2>
+    <h2>🚆 RER A (Joinville-le-Pont)</h2>
     <div id="rer-a">Chargement...</div>
     <div id="info-rer-a"></div>
   </section>
 
   <section>
-    <h2>🚌 Bus 77</h2>
+    <h2>🚌 Bus 77 (Hippodrome de Vincennes)</h2>
     <div id="bus-77">Chargement...</div>
     <div id="info-bus-77"></div>
   </section>
 
   <section>
-    <h2>🚌 Bus 201</h2>
+    <h2>🚌 Bus 201 (École du Breuil)</h2>
     <div id="bus-201">Chargement...</div>
     <div id="info-bus-201"></div>
   </section>
-<section>
-  <h2>📊 État des lignes</h2>
-  <div id="lines-status">Chargement...</div>
-</section>
 
   <section>
     <h2>🚲 Vélib’ Vincennes</h2>
@@ -90,7 +35,7 @@
   </section>
 
   <section>
-    <h2>🚲 Vélib’ Breuil</h2>
+    <h2>🚲 Vélib’ École du Breuil</h2>
     <div id="velib-breuil">Chargement...</div>
   </section>
 
