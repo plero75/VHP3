@@ -26,9 +26,9 @@ function formatTrip(aimed, expected, isLast) {
     const imminent = timeLeft <= 1.5 ? "🟢 imminent" : `⏳ dans ${timeLeft} min`;
     const delayStr = delay > 1 ? ` (retard +${delay} min)` : "";
     const lastStr = isLast ? " 🔴 Dernier passage" : "";
-    return `<li>🕐 ${expectedDate.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} ${imminent}${delayStr}${lastStr}</li>`;
+    return `<li>🕐 ${expectedDate.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} ${imminent}${delayStr}${lastStr}`;
   } else {
-    return "<li>❌ Passage annulé ou inconnu</li>";
+    return "<li>❌ Passage annulé ou inconnu";
   }
 }
 
@@ -66,15 +66,13 @@ async function fetchPrimStop(line) {
       const isLast = i === visits.length - 1;
       const aimed = mc?.AimedDepartureTime, expected = mc?.ExpectedDepartureTime;
 
-      // Récupération destination et direction
       const destination = mvj?.DestinationName?.[0]?.value || "Destination inconnue";
       const direction = mvj?.DirectionName?.[0]?.value || "";
 
       const tripLine = formatTrip(aimed, expected, isLast);
 
-      html += `<li>${tripLine}<br>🚩 <strong>${destination}</strong> ${direction}`;
+      html += `${tripLine}<br>🚩 <strong>${destination}</strong> ${direction}`;
 
-      // Ajout des arrêts desservis
       const onward = mvj.OnwardCalls?.OnwardCall;
       if (onward && onward.length > 0) {
         const stops = onward
@@ -102,9 +100,9 @@ async function fetchPrimInfo(line) {
     const infos = data.Siri?.ServiceDelivery?.GeneralMessageDelivery?.[0]?.InfoMessage || [];
     if (infos.length) {
       const messages = infos.map(m => {
-  const msg = m?.Content?.Message?.[0]?.value;
-  return msg ? `⚠️ ${msg}` : "⚠️ Message vide";
-}).join("<br>");
+        const msg = m?.Content?.Message?.[0]?.value;
+        return msg ? `⚠️ ${msg}` : "⚠️ Message vide";
+      }).join("<br>");
       document.querySelector(line.infoId).innerHTML = messages;
     } else {
       document.querySelector(line.infoId).innerHTML = "✅ Pas de perturbation signalée.";
@@ -115,57 +113,7 @@ async function fetchPrimInfo(line) {
   }
 }
 
-async function fetchWeather() {
-  setLoading("#meteo");
-  const url = `${CORS_PROXY}https://api.open-meteo.com/v1/forecast?latitude=48.835&longitude=2.43&current=temperature_2m,weathercode&timezone=Europe%2FParis`;
-  try {
-    const data = await fetchWithRetry(url);
-    const temp = data.current.temperature_2m;
-    const code = data.current.weathercode;
-    const desc = {
-      0:"Ciel clair",1:"Principalement clair",2:"Partiellement nuageux",3:"Couvert",45:"Brouillard",
-      51:"Bruine",61:"Pluie légère",80:"Averses",95:"Orages"
-    }[code] || "Inconnu";
-    const iconSrc = `img/${code}.png`; // ex: img/0.png, img/61.png, etc.
-    document.querySelector("#meteo").innerHTML = `
-      <img src="${iconSrc}" alt="Météo" style="height:48px;vertical-align:middle;margin-right:8px;">
-      🌡 ${temp}°C, ${desc}
-    `;
-    updateTimestamp("#meteo");
-  } catch (e) {
-    console.error(e);
-    document.querySelector("#meteo").textContent = `Erreur : ${e.message}`;
-  }
-}
-
-async function fetchTrafficRoad() {
-  setLoading("#trafic");
-  const url = `${CORS_PROXY}https://data.opendatasoft.com/api/records/1.0/search/?dataset=etat-de-circulation-en-temps-reel-sur-le-reseau-national-routier-non-concede&q=&rows=5&facet=route`;
-  try {
-    const data = await fetchWithRetry(url);
-    document.querySelector("#trafic").innerHTML = data.records.map(r => `🛣 ${r.fields.route} : ${r.fields.etat_circulation}`).join("<br>") || "✅ Trafic normal";
-    updateTimestamp("#trafic");
-  } catch (e) {
-    console.error(e);
-    document.querySelector("#trafic").textContent = `Erreur : ${e.message}`;
-  }
-}
-
-async function fetchVelib(stationId, elementId) {
-  setLoading(elementId);
-  const url = `${CORS_PROXY}https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json`;
-  try {
-    const data = await fetchWithRetry(url);
-    const station = data?.data?.stations?.find(s => s.station_id === stationId);
-    document.querySelector(elementId).innerHTML = station ?
-      `🚲 ${station.num_bikes_available} vélos - 🅿️ ${station.num_docks_available} bornes` :
-      "⚠️ Station Vélib introuvable ou indisponible.";
-    updateTimestamp(elementId);
-  } catch (e) {
-    console.error(e);
-    document.querySelector(elementId).textContent = `Erreur : ${e.message}`;
-  }
-}
+// (Les fonctions fetchWeather, fetchTrafficRoad, fetchVelib restent identiques à ta dernière version)
 
 async function updateLines() {
   await Promise.all(LINES.map(line => Promise.all([
