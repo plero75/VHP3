@@ -1,12 +1,22 @@
 const CORS_PROXY = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";
 
-function formatTime(iso) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const LINES = [
+  { name: "RER A", monitoringRef: "STIF:StopArea:SP:43135:", lineRef: "STIF:Line::C01742:", elementId: "#rer-a", infoId: "#info-rer-a" },
+  { name: "Bus 77", monitoringRef: "STIF:StopArea:SP:463641:", lineRef: "STIF:Line::C01789:", elementId: "#bus-77", infoId: "#info-bus-77" },
+  { name: "Bus 201", monitoringRef: "STIF:StopArea:SP:463644:", lineRef: "STIF:Line::C01805:", elementId: "#bus-201", infoId: "#info-bus-201" }
+];
+
+function updateTimestamp(elementId) {
+  const now = new Date();
+  const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  document.querySelector(elementId).insertAdjacentHTML('beforeend', `<div style="font-size:0.8em;">🕒 Mise à jour : ${time}</div>`);
 }
 
-function formatTrip(aimed, expected) {
+function setLoading(elementId) {
+  document.querySelector(elementId).innerHTML = "🔄 Chargement...";
+}
+
+function formatTrip(aimed, expected, isLast) {
   const aimedDate = aimed ? new Date(aimed) : null;
   const expectedDate = expected ? new Date(expected) : null;
   const now = new Date();
@@ -15,42 +25,84 @@ function formatTrip(aimed, expected) {
   if (timeLeft !== null) {
     const imminent = timeLeft <= 1.5 ? "🟢 imminent" : `⏳ dans ${timeLeft} min`;
     const delayStr = delay > 1 ? ` (retard +${delay} min)` : "";
-    return `${formatTime(aimed)} → ${formatTime(expected)} ${imminent}${delayStr}`;
+    const lastStr = isLast ? " 🔴 Dernier passage" : "";
+    return `<li>🕐 ${expectedDate.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} ${imminent}${delayStr}${lastStr}</li>`;
   } else {
-    return "❌ Passage annulé ou inconnu";
+    return "<li>❌ Passage annulé ou inconnu</li>";
   }
 }
 
-async function fetchPrimStop(monitoringRef, lineRef, elementId) {
-  const url = `${CORS_PROXY}https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=${monitoringRef}&LineRef=${lineRef}`;
+async function fetchWithRetry(url, options = {}, retries = 1) {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, options);
     if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
-    const data = await res.json();
+    return await res.json();
+  } catch (e) {
+    if (retries > 0) {
+      console.warn(`Retry ${url}`);
+      return fetchWithRetry(url, options, retries - 1);
+    } else {
+      throw e;
+    }
+  }
+}
+
+async function fetchPrimStop(line) {
+  setLoading(line.elementId);
+  const url = `${CORS_PROXY}https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=${line.monitoringRef}&LineRef=${line.lineRef}`;
+  try {
+    const data = await fetchWithRetry(url);
     const visits = data?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || [];
-    const trips = visits.slice(0, 4).map(v => {
+    if (!visits.length) {
+      const hour = new Date().getHours();
+      const msg = hour < 5 || hour > 0 ? "🚫 Service terminé – prochain départ demain." : "Aucun passage disponible.";
+      document.querySelector(line.elementId).innerHTML = msg;
+      return;
+    }
+    let html = "<ul>";
+    visits.slice(0, 4).forEach((v, i) => {
       const mc = v.MonitoredVehicleJourney?.MonitoredCall;
-      return formatTrip(mc?.AimedDepartureTime, mc?.ExpectedDepartureTime);
+      const isLast = i === visits.length - 1;
+      html += formatTrip(mc?.AimedDepartureTime, mc?.ExpectedDepartureTime, isLast);
     });
-    document.querySelector(elementId).innerHTML = trips.length ? trips.join("<br>") : "Aucun passage disponible.";
+    html += "</ul>";
+    document.querySelector(line.elementId).innerHTML = html;
+    updateTimestamp(line.elementId);
   } catch (e) {
     console.error(e);
-    document.querySelector(elementId).textContent = `Erreur : ${e.message}`;
+    document.querySelector(line.elementId).textContent = `Erreur : ${e.message}`;
+  }
+}
+
+async function fetchPrimInfo(line) {
+  const url = `${CORS_PROXY}https://prim.iledefrance-mobilites.fr/marketplace/general-message?LineRef=${line.lineRef}`;
+  try {
+    const data = await fetchWithRetry(url);
+    const infos = data.Siri?.ServiceDelivery?.GeneralMessageDelivery?.[0]?.InfoMessage || [];
+    if (infos.length) {
+      const messages = infos.map(m => `⚠️ ${m.Content.Message[0].value}`).join("<br>");
+      document.querySelector(line.infoId).innerHTML = messages;
+    } else {
+      document.querySelector(line.infoId).innerHTML = "✅ Pas de perturbation signalée.";
+    }
+  } catch (e) {
+    console.error(e);
+    document.querySelector(line.infoId).textContent = `Erreur info : ${e.message}`;
   }
 }
 
 async function fetchWeather() {
+  setLoading("#meteo");
   const url = `${CORS_PROXY}https://api.open-meteo.com/v1/forecast?latitude=48.835&longitude=2.43&current=temperature_2m,weathercode&timezone=Europe%2FParis`;
   try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
-    const data = await res.json();
+    const data = await fetchWithRetry(url);
     const temp = data.current.temperature_2m;
     const desc = {
       0:"Ciel clair",1:"Principalement clair",2:"Partiellement nuageux",3:"Couvert",45:"Brouillard",
       51:"Bruine",61:"Pluie légère",80:"Averses",95:"Orages"
     }[data.current.weathercode] || "Inconnu";
-    document.querySelector("#meteo").textContent = `🌡 ${temp}°C, ${desc}`;
+    document.querySelector("#meteo").innerHTML = `🌡 ${temp}°C, ${desc}`;
+    updateTimestamp("#meteo");
   } catch (e) {
     console.error(e);
     document.querySelector("#meteo").textContent = `Erreur : ${e.message}`;
@@ -58,12 +110,12 @@ async function fetchWeather() {
 }
 
 async function fetchTrafficRoad() {
+  setLoading("#trafic");
   const url = `${CORS_PROXY}https://data.opendatasoft.com/api/records/1.0/search/?dataset=etat-de-circulation-en-temps-reel-sur-le-reseau-national-routier-non-concede&q=&rows=5&facet=route`;
   try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
-    const data = await res.json();
+    const data = await fetchWithRetry(url);
     document.querySelector("#trafic").innerHTML = data.records.map(r => `🛣 ${r.fields.route} : ${r.fields.etat_circulation}`).join("<br>") || "✅ Trafic normal";
+    updateTimestamp("#trafic");
   } catch (e) {
     console.error(e);
     document.querySelector("#trafic").textContent = `Erreur : ${e.message}`;
@@ -71,33 +123,47 @@ async function fetchTrafficRoad() {
 }
 
 async function fetchVelib(stationId, elementId) {
+  setLoading(elementId);
   const url = `${CORS_PROXY}https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json`;
   try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
-    const data = await res.json();
+    const data = await fetchWithRetry(url);
     const station = data?.data?.stations?.find(s => s.station_id === stationId);
-    document.querySelector(elementId).textContent = station ?
+    document.querySelector(elementId).innerHTML = station ?
       `🚲 ${station.num_bikes_available} vélos - 🅿️ ${station.num_docks_available} bornes` :
       "⚠️ Station Vélib introuvable ou indisponible.";
+    updateTimestamp(elementId);
   } catch (e) {
     console.error(e);
     document.querySelector(elementId).textContent = `Erreur : ${e.message}`;
   }
 }
 
-async function main() {
-  await Promise.allSettled([
-    fetchPrimStop("STIF:StopArea:SP:43135:", "STIF:Line::C01742:", "#rer-a"),
-    fetchPrimStop("STIF:StopArea:SP:463641:", "STIF:Line::C01789:", "#bus-77"),
-    fetchPrimStop("STIF:StopArea:SP:463644:", "STIF:Line::C01805:", "#bus-201"),
+async function updateLines() {
+  await Promise.all(LINES.map(line => Promise.all([
+    fetchPrimStop(line),
+    fetchPrimInfo(line)
+  ])));
+}
+
+async function updateMeteoTrafic() {
+  await Promise.all([
     fetchWeather(),
-    fetchTrafficRoad(),
+    fetchTrafficRoad()
+  ]);
+}
+
+async function updateVelib() {
+  await Promise.all([
     fetchVelib("1074333296", "#velib-vincennes"),
     fetchVelib("1066333450", "#velib-breuil")
   ]);
 }
 
-// Exécution initiale et rafraîchissement périodique
-main();
-setInterval(main, 2*60*1000);
+// Exécution initiale et rafraîchissements différenciés
+updateLines();
+updateMeteoTrafic();
+updateVelib();
+
+setInterval(updateLines, 2 * 60 * 1000);
+setInterval(updateVelib, 5 * 60 * 1000);
+setInterval(updateMeteoTrafic, 15 * 60 * 1000);
