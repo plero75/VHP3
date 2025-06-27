@@ -1,119 +1,17 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dashboard Transports Vincennes</title>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
-      font-family: Arial, sans-serif;
-      background: #f7f7f7;
-      color: #333;
-      overflow: hidden;
-    }
-    .header-time {
-      text-align: center;
-      padding: 1vh 0;
-      font-size: calc(1.5vh + 1.5vw);
-      background: #0055a4;
-      color: white;
-    }
-    .dashboard-container {
-      display: grid;
-      height: calc(100% - 5vh);
-      width: 100%;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      grid-auto-rows: 1fr;
-      gap: 1vh;
-      padding: 1vh;
-      box-sizing: border-box;
-    }
-    .dashboard-block {
-      background: white;
-      border-radius: 1vh;
-      box-shadow: 0 0.5vh 1vh rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      padding: 1.5vh;
-      overflow: hidden;
-    }
-    .dashboard-block h2 {
-      margin: 0 0 0.5vh 0;
-      font-size: calc(1.4vh + 1.4vw);
-      color: #0055a4;
-    }
-    .update-time {
-      font-size: calc(1vh + 0.8vw);
-      color: #555;
-      margin-bottom: 1vh;
-    }
-    pre, p {
-      flex: 1;
-      margin: 0;
-      font-size: calc(1.2vh + 1.2vw);
-      white-space: pre-wrap;
-      word-break: break-word;
-      overflow-wrap: break-word;
-    }
-    pre {
-      background: #f0f0f0;
-      padding: 1vh;
-      border-radius: 0.5vh;
-    }
-  </style>
-</head>
-<body>
-
-  <div class="header-time" id="current-time"></div>
-
-  <div class="dashboard-container">
-
-    <div class="dashboard-block">
-      <h2>🚆 RER A (Joinville-le-Pont)</h2>
-      <div class="update-time" id="rer-joinville-update"></div>
-      <pre id="rer-joinville"></pre>
-      <p id="rer-joinville-traffic"></p>
-    </div>
-
-    <div class="dashboard-block">
-      <h2>🚌 Bus 77 (Hippodrome de Vincennes)</h2>
-      <div class="update-time" id="bus77-hippo-update"></div>
-      <pre id="bus77-hippo"></pre>
-      <p id="bus77-hippo-traffic"></p>
-    </div>
-
-    <div class="dashboard-block">
-      <h2>🚌 Bus 201 (École du Breuil)</h2>
-      <div class="update-time" id="bus201-breuil-update"></div>
-      <pre id="bus201-breuil"></pre>
-      <p id="bus201-breuil-traffic"></p>
-    </div>
-
-    <div class="dashboard-block">
-      <h2>🚲 Vélib’</h2>
-      <div class="update-time" id="velib-update"></div>
-      <p id="velib-vincennes"></p>
-      <p id="velib-breuil"></p>
-    </div>
-
-    <div class="dashboard-block">
-      <h2>🌤 Météo Vincennes</h2>
-      <div class="update-time" id="weather-update"></div>
-      <p id="weather"></p>
-    </div>
-
-    <div class="dashboard-block">
-      <h2>🚦 Trafic routier</h2>
-      <div class="update-time" id="traffic-road-update"></div>
-      <p id="traffic-road"></p>
-    </div>
-
+<div id="dashboard" class="container">
+  <div class="block" id="rer-joinville"></div>
+  <div class="block" id="bus77-hippo"></div>
+  <div class="block" id="bus201-breuil"></div>
+  <div class="block" id="velib">
+    <h3 class="block-title">🚲 Vélib’</h3>
+    <div class="block-content" id="velib-update"></div>
   </div>
-
-  <script src="script.js"></script> <!-- mets ici ton script JS final -->
-</body>
-</html>
+  <div class="block" id="weather">
+    <h3 class="block-title">🌤 Météo Vincennes</h3>
+    <div class="block-content" id="weather-update"></div>
+  </div>
+  <div class="block" id="traffic-road">
+    <h3 class="block-title">🚦 Trafic routier</h3>
+    <div class="block-content" id="traffic-road-update"></div>
+  </div>
+</div>
