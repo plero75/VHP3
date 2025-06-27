@@ -1,95 +1,76 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <title>Dashboard Temps Réel - Transports & Actualités</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #f0f0f0;
-      margin: 20px;
-      color: #333;
-    }
-    section {
-      background: white;
-      border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    h2 { margin-top: 0; }
+body {
+  font-family: sans-serif;
+  background: #f0f0f0;
+  margin: 20px;
+  color: #333;
+}
 
-    #alerts {
-      color: red;
-      font-weight: bold;
-      font-size: 1.2em;
-      margin-bottom: 20px;
-    }
+h1 {
+  font-size: 2.5em;
+  text-align: center;
+  margin-bottom: 30px;
+}
 
-    /* Bandeau actualités */
-    #rss-news {
-      overflow: hidden;
-      white-space: nowrap;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    #rss-news ul {
-      display: inline-block;
-      padding: 0;
-      margin: 0;
-      animation: scroll-left 45s linear infinite;
-    }
-    #rss-news li {
-      display: inline;
-      font-size: 2em;
-      margin-right: 50px;
-      color: #222;
-    }
-    @keyframes scroll-left {
-      0% { transform: translateX(100%); }
-      100% { transform: translateX(-100%); }
-    }
-  </style>
-</head>
-<body>
+section {
+  background: white;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
 
-  <h1>🚌 Dashboard Temps Réel - Transports & Actualités</h1>
+h2 {
+  margin-top: 0;
+  font-size: 1.8em;
+  color: #00529b;
+}
 
-  <div id="alerts"></div>
+#alerts {
+  color: red;
+  font-weight: bold;
+  font-size: 1.2em;
+  margin-bottom: 20px;
+  text-align: center;
+}
 
-  <section>
-    <h2>📰 Actualités</h2>
-    <div id="rss-news">Chargement...</div>
-  </section>
+/* Bandeau actualités défilant */
+#rss-news {
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
+  box-sizing: border-box;
+  background: #00529b;
+  color: white;
+  padding: 10px 0;
+  border-radius: 5px;
+}
 
-  <section>
-    <h2>🚆 RER A</h2>
-    <div id="rer-a">Chargement...</div>
-    <div id="info-rer-a"></div>
-  </section>
+#rss-news ul {
+  display: inline-block;
+  padding: 0;
+  margin: 0;
+  animation: scroll-left 45s linear infinite;
+}
 
-  <section>
-    <h2>🚌 Bus 77</h2>
-    <div id="bus-77">Chargement...</div>
-    <div id="info-bus-77"></div>
-  </section>
+#rss-news li {
+  display: inline;
+  font-size: 2em;
+  margin-right: 50px;
+}
 
-  <section>
-    <h2>🚌 Bus 201</h2>
-    <div id="bus-201">Chargement...</div>
-    <div id="info-bus-201"></div>
-  </section>
+@keyframes scroll-left {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
 
-  <section>
-    <h2>🚲 Vélib’ Vincennes</h2>
-    <div id="velib-vincennes">Chargement...</div>
-  </section>
+/* Sections horaires et infos */
+#rer-a, #bus-77, #bus-201, #velib-vincennes, #velib-breuil {
+  font-size: 1.5em;
+  line-height: 1.4;
+}
 
-  <section>
-    <h2>🚲 Vélib’ Breuil</h2>
-    <div id="velib-breuil">Chargement...</div>
-  </section>
-
-  <script src="script.js"></script>
-</body>
-</html>
+#info-rer-a, #info-bus-77, #info-bus-201 {
+  margin-top: 10px;
+  font-size: 1.2em;
+  color: #c0392b;
+}
