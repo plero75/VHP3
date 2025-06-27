@@ -1,6 +1,9 @@
 const API_PROXY_URL = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";
 const PRIM_API_BASE = "https://prim.iledefrance-mobilites.fr/marketplace";
-
+const VELIB_IDS = {
+  vincennes: "1074333296",
+  breuil: "508042092"
+};
 async function fetchRealTime(stopAreaId) {
   const cacheKey = `cache-${stopAreaId}`;
   if (sessionStorage[cacheKey]) {
