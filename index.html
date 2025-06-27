@@ -1,17 +1,78 @@
-<div id="dashboard" class="container">
-  <div class="block" id="rer-joinville"></div>
-  <div class="block" id="bus77-hippo"></div>
-  <div class="block" id="bus201-breuil"></div>
-  <div class="block" id="velib">
-    <h3 class="block-title">🚲 Vélib’</h3>
-    <div class="block-content" id="velib-update"></div>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VHP Dashboard</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', sans-serif;
+      margin: 0;
+      background: #f5f6fa;
+      color: #333;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1rem;
+      padding: 1rem;
+    }
+    .block {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .block-title {
+      margin-top: 0;
+      margin-bottom: 0.5em;
+      font-size: 1.2em;
+      color: #007bff;
+    }
+    .block-content {
+      font-size: 1em;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+    @media (max-width: 600px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="current-time" style="padding: 1rem; font-size: 1.1em;">🕒 Chargement...</div>
+  <div class="container">
+    <div class="block">
+      <h3 class="block-title">🚆 RER A – Joinville-le-Pont</h3>
+      <div class="block-content" id="rer-joinville"></div>
+    </div>
+    <div class="block">
+      <h3 class="block-title">🚌 Bus 77 – Hippodrome de Vincennes</h3>
+      <div class="block-content" id="bus77-hippo"></div>
+    </div>
+    <div class="block">
+      <h3 class="block-title">🚌 Bus 201 – École du Breuil</h3>
+      <div class="block-content" id="bus201-breuil"></div>
+    </div>
+    <div class="block">
+      <h3 class="block-title">🚲 Vélib’ – Vincennes</h3>
+      <div class="block-content" id="velib-vincennes"></div>
+    </div>
+    <div class="block">
+      <h3 class="block-title">🚲 Vélib’ – Breuil</h3>
+      <div class="block-content" id="velib-breuil"></div>
+    </div>
+    <div class="block">
+      <h3 class="block-title">🌤 Météo Vincennes</h3>
+      <div class="block-content" id="weather-update"></div>
+    </div>
+    <div class="block">
+      <h3 class="block-title">🚦 Trafic routier</h3>
+      <div class="block-content" id="traffic-road-update"></div>
+    </div>
   </div>
-  <div class="block" id="weather">
-    <h3 class="block-title">🌤 Météo Vincennes</h3>
-    <div class="block-content" id="weather-update"></div>
-  </div>
-  <div class="block" id="traffic-road">
-    <h3 class="block-title">🚦 Trafic routier</h3>
-    <div class="block-content" id="traffic-road-update"></div>
-  </div>
-</div>
+  <script src="script.js"></script>
+</body>
+</html>
