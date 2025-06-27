@@ -101,7 +101,10 @@ async function fetchPrimInfo(line) {
     const data = await fetchWithRetry(url);
     const infos = data.Siri?.ServiceDelivery?.GeneralMessageDelivery?.[0]?.InfoMessage || [];
     if (infos.length) {
-      const messages = infos.map(m => `⚠️ ${m.Content.Message[0].value}`).join("<br>");
+      const messages = infos.map(m => {
+  const msg = m?.Content?.Message?.[0]?.value;
+  return msg ? `⚠️ ${msg}` : "⚠️ Message vide";
+}).join("<br>");
       document.querySelector(line.infoId).innerHTML = messages;
     } else {
       document.querySelector(line.infoId).innerHTML = "✅ Pas de perturbation signalée.";
