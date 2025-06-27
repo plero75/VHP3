@@ -33,36 +33,6 @@ h2 {
   text-align: center;
 }
 
-/* Bandeau actualités défilant */
-#rss-news {
-  overflow: hidden;
-  white-space: nowrap;
-  width: 100%;
-  box-sizing: border-box;
-  background: #00529b;
-  color: white;
-  padding: 10px 0;
-  border-radius: 5px;
-}
-
-#rss-news ul {
-  display: inline-block;
-  padding: 0;
-  margin: 0;
-  animation: scroll-left 45s linear infinite;
-}
-
-#rss-news li {
-  display: inline;
-  font-size: 2em;
-  margin-right: 50px;
-}
-
-@keyframes scroll-left {
-  0% { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
-}
-
 /* Sections horaires et infos */
 #rer-a, #bus-77, #bus-201, #velib-vincennes, #velib-breuil {
   font-size: 1.5em;
