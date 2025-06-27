@@ -1,8 +1,6 @@
-console.log("🔎 Début du script");
+console.log("🔎 Début du script avec améliorations de robustesse et performances");
 
 const API_PROXY_URL = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https://prim.iledefrance-mobilites.fr/marketplace";
-
-console.log("📍 Configuration des identifiants d'arrêts et lignes");
 
 const STOP_IDS = {
   rer_joinville: "STIF:StopPoint:Q:39406:",
@@ -23,23 +21,30 @@ const VELIB_IDS = {
 async function fetchPrimStop(monitoringRef, lineRef) {
   console.log(`➡️ fetchPrimStop: monitoringRef=${monitoringRef}, lineRef=${lineRef}`);
   const url = `${API_PROXY_URL}/stop-monitoring?MonitoringRef=${monitoringRef}&LineRef=${lineRef}`;
-  const res = await fetch(url);
-  console.log("📝 [PRIM] Response status:", res.status);
-  if (!res.ok) throw new Error(`Erreur HTTP ${res.status} lors de la requête PRIM.`);
-  return await res.json();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    console.log("📝 [PRIM] Response status:", res.status);
+    if (!res.ok) throw new Error(`Erreur HTTP ${res.status} lors de la requête PRIM.`);
+    return await res.json();
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function parseTrips(json, expectedLineRef) {
   console.log("🔍 Parsing trips pour la ligne:", expectedLineRef);
   const visits = json?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || [];
   const trips = visits.filter(v => v.MonitoredVehicleJourney?.LineRef?.value === expectedLineRef)
+    .slice(0, 4)
     .map(v => ({
       aimed: v.MonitoredVehicleJourney.MonitoredCall.AimedDepartureTime,
       expected: v.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime,
       direction: v.MonitoredVehicleJourney.DirectionName?.[0]?.value || "Direction inconnue"
     }));
   console.log("📝 Nombre de passages trouvés:", trips.length);
-  trips.length ? trips.slice(0, 4).forEach(trip => console.log(formatTrip(trip))) : console.log("❌ Aucun passage disponible pour la ligne demandée.");
+  trips.length ? trips.forEach(trip => console.log(formatTrip(trip))) : console.log("❌ Aucun passage disponible pour la ligne demandée.");
 }
 
 function formatTrip(trip) {
@@ -55,8 +60,7 @@ const aimedTime = iso => iso ? new Date(iso) : null;
 
 async function fetchWeather() {
   console.log("➡️ fetchWeather");
-  const url = "https://api.open-meteo.com/v1/forecast?latitude=48.835&longitude=2.43&current=temperature_2m,weathercode&timezone=Europe%2FParis";
-  const res = await fetch(url);
+  const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=48.835&longitude=2.43&current=temperature_2m,weathercode&timezone=Europe%2FParis");
   console.log("📝 [Météo] Response status:", res.status);
   if (!res.ok) throw new Error(`Erreur HTTP ${res.status} lors de la requête météo.`);
   const data = await res.json();
@@ -68,8 +72,7 @@ const weatherDescription = code => ({0:"Ciel clair",1:"Principalement clair",2:"
 
 async function fetchTrafficRoad() {
   console.log("➡️ fetchTrafficRoad");
-  const url = "https://data.opendatasoft.com/api/records/1.0/search/?dataset=etat-de-circulation-en-temps-reel-sur-le-reseau-national-routier-non-concede&q=&rows=5&facet=route";
-  const res = await fetch(url);
+  const res = await fetch("https://data.opendatasoft.com/api/records/1.0/search/?dataset=etat-de-circulation-en-temps-reel-sur-le-reseau-national-routier-non-concede&q=&rows=5&facet=route");
   console.log("📝 [Trafic routier] Response status:", res.status);
   if (!res.ok) throw new Error(`Erreur HTTP ${res.status} lors de la requête trafic.`);
   const data = await res.json();
@@ -79,8 +82,7 @@ async function fetchTrafficRoad() {
 
 async function fetchVelib(stationId) {
   console.log("➡️ fetchVelib stationId:", stationId);
-  const url = "https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json";
-  const res = await fetch(url);
+  const res = await fetch("https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json");
   console.log("📝 [Vélib] Response status:", res.status);
   if (!res.ok) throw new Error(`Erreur HTTP ${res.status} lors de la requête Vélib.`);
   const data = await res.json();
@@ -90,22 +92,28 @@ async function fetchVelib(stationId) {
 }
 
 async function main() {
-  console.log("🚦 Début de la fonction main");
+  console.log("🚦 Début de la fonction main avec robustesse améliorée");
   try {
-    const [dataRer, data77, data201] = await Promise.all([
+    const [dataRer, data77, data201] = await Promise.allSettled([
       fetchPrimStop(STOP_IDS.rer_joinville, LINE_REFS.rer_a),
       fetchPrimStop(STOP_IDS.bus77_hippo, LINE_REFS.bus77),
       fetchPrimStop(STOP_IDS.bus201_breuil, LINE_REFS.bus201)
     ]);
 
-    console.log("🚆 RER A – Joinville-le-Pont");
-    parseTrips(dataRer, LINE_REFS.rer_a);
+    if (dataRer.status === "fulfilled") {
+      console.log("🚆 RER A – Joinville-le-Pont");
+      parseTrips(dataRer.value, LINE_REFS.rer_a);
+    }
 
-    console.log("\n🚌 Bus 77 – Hippodrome");
-    parseTrips(data77, LINE_REFS.bus77);
+    if (data77.status === "fulfilled") {
+      console.log("\n🚌 Bus 77 – Hippodrome");
+      parseTrips(data77.value, LINE_REFS.bus77);
+    }
 
-    console.log("\n🚌 Bus 201 – Breuil");
-    parseTrips(data201, LINE_REFS.bus201);
+    if (data201.status === "fulfilled") {
+      console.log("\n🚌 Bus 201 – Breuil");
+      parseTrips(data201.value, LINE_REFS.bus201);
+    }
 
     await Promise.all([fetchWeather(), fetchTrafficRoad(), fetchVelib(VELIB_IDS.vincennes)]);
 
