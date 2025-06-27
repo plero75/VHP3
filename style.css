@@ -1,4 +1,43 @@
 body { font-family: sans-serif; padding: 1em; }
 .icon-inline { height: 1em; vertical-align: middle; margin-right: 0.3em; }
 .title-line { font-weight: bold; margin-top: 1em; }
-.bloc-titre { font-size: 1.2em; margin-top: 2em; }
+.bloc-titre { font-size: 1.2em; margin-top: 2em; 
+            body {
+  font-family: 'Helvetica Neue', sans-serif;
+  margin: 0;
+  background: #f5f6fa;
+  color: #333;
+}
+
+.container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.block {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.block-title {
+  margin-top: 0;
+  margin-bottom: 0.5em;
+  font-size: 1.2em;
+  color: #007bff;
+}
+
+.block-content {
+  font-size: 1em;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+@media (max-width: 600px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+}
