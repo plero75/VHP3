@@ -133,6 +133,52 @@ function updateGlobalDateTime() {
   const now = new Date();
   document.getElementById("current-time").textContent = `🕒 ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
 }
+async function fetchVelib(stationId, elementId) {
+  updateElementTime("velib-update");
+  const url = "https://velib-metropole-opendata.smoove.pro/opendata/Velib_Metropole/station_status.json";
+  try {
+    const res = await fetchWithTimeout(url);
+    if (!res.ok) throw new Error(`Erreur Vélib ${res.status}`);
+    const data = await res.json();
+    const station = data.data.stations.find(s => s.station_id === stationId);
+    if (!station) throw new Error("Station Vélib introuvable");
+    updateElementText(elementId, `🚲 ${station.num_bikes_available} vélos - 🅿️ ${station.num_docks_available} bornes`);
+  } catch (e) {
+    console.warn("Erreur Vélib:", e);
+    updateElementText(elementId, "⚠️ Données Vélib indisponibles");
+  }
+}
+
+async function fetchWeather() {
+  updateElementTime("weather-update");
+  const url = "https://api.open-meteo.com/v1/forecast?latitude=48.835&longitude=2.430&current=temperature_2m,weathercode&timezone=Europe%2FParis";
+  try {
+    const res = await fetchWithTimeout(url);
+    if (!res.ok) throw new Error(`Erreur météo ${res.status}`);
+    const data = await res.json();
+    const temp = data.current.temperature_2m;
+    const desc = getWeatherDescription(data.current.weathercode);
+    updateElementText("weather-update", `🌡 ${temp}°C, ${desc}`);
+  } catch (e) {
+    console.warn("Erreur météo:", e);
+    updateElementText("weather-update", "⚠️ Météo indisponible");
+  }
+}
+
+async function fetchTrafficRoad() {
+  updateElementTime("traffic-road-update");
+  const url = "https://data.opendatasoft.com/api/records/1.0/search/?dataset=etat-de-circulation-en-temps-reel-sur-le-reseau-national-routier-non-concede&q=&rows=10&facet=route";
+  try {
+    const res = await fetchWithTimeout(url);
+    if (!res.ok) throw new Error(`Erreur trafic routier ${res.status}`);
+    const data = await res.json();
+    const infos = data.records.map(r => `🛣 ${r.fields.route} : ${r.fields.etat_circulation}`).join("<br>") || "✅ Trafic normal";
+    updateElementText("traffic-road-update", infos);
+  } catch (e) {
+    console.warn("Erreur trafic routier:", e);
+    updateElementText("traffic-road-update", "⚠️ Trafic routier indisponible");
+  }
+}
 
 async function refreshAll() {
   try {
@@ -141,11 +187,18 @@ async function refreshAll() {
       updateStop("rer-joinville", STOP_IDS.rer_joinville, "STIF:Line::C01742:"),
       updateStop("bus77-hippo", STOP_IDS.bus77_hippo, "STIF:Line::C01789:"),
       updateStop("bus201-breuil", STOP_IDS.bus201_breuil, "STIF:Line::C01805:"),
+      fetchVelib(VELIB_IDS.vincennes, "velib-update"),
+      fetchVelib(VELIB_IDS.breuil, "velib-update"),
+      fetchWeather(),
+      fetchTrafficRoad()
     ]);
   } catch (e) {
     console.error("Erreur refreshAll:", e);
   }
 }
+
+}
+
 
 refreshAll();
 setInterval(refreshAll, 60000);
