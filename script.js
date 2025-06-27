@@ -93,4 +93,33 @@ async function updateStop(elementId, stopId, lineId) {
     const aimedStr = aimed ? aimed.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : "—";
     const expectedStr = expected.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 
-    return `🕐 ${aimedStr} → ${expectedStr} ⏳ dans ${timeLeft}
+    return `🕐 ${aimedStr} → ${expectedStr} ⏳ dans ${timeLeft} min${delayStr} ${imminent}`;
+  }).join("\n");
+
+  document.getElementById(elementId).textContent = nextTrips || "❌ Aucun passage";
+
+  const traffic = await fetchTraffic(lineId);
+  const disruptions = traffic.Siri.ServiceDelivery.GeneralMessageDelivery[0].InfoMessage || [];
+  const trafficInfo = disruptions.map(d => d.InfoMessageText?.[0]?.value).join("\n\n");
+  document.getElementById(`${elementId}-traffic`).textContent = trafficInfo || "✅ Pas de perturbation signalée";
+}
+
+async function refreshAll() {
+  try {
+    updateGlobalDateTime();
+    await Promise.all([
+      updateStop("rer-joinville", "STIF:StopArea:SP:43135:", "STIF:Line::C01742:"),
+      updateStop("bus77-hippo", "STIF:StopArea:SP:463641:", "STIF:Line::C01789:"),
+      updateStop("bus201-breuil", "STIF:StopArea:SP:463644:", "STIF:Line::C01805:"),
+      fetchVelib("12128", "velib-vincennes"),
+      fetchVelib("12163", "velib-breuil"),
+      fetchWeather(),
+      fetchTrafficRoad()
+    ]);
+  } catch (e) {
+    console.error("Erreur refreshAll:", e);
+  }
+}
+
+refreshAll();
+setInterval(refreshAll, 60000); // actualisation toutes les minutes
