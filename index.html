@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>VHP Dashboard</title>
   <style>
     body {
@@ -25,9 +25,15 @@
     }
     .block-title {
       margin-top: 0;
-      margin-bottom: 0.5em;
+      margin-bottom: 0.3em;
       font-size: 1.2em;
       color: #007bff;
+    }
+    .block-update {
+      font-size: 0.85em;
+      color: #666;
+      margin-bottom: 0.8em;
+      font-style: italic;
     }
     .block-content {
       font-size: 1em;
@@ -46,31 +52,38 @@
   <div class="container">
     <div class="block">
       <h3 class="block-title">🚆 RER A – Joinville-le-Pont</h3>
+      <div class="block-update" id="rer-joinville-update"></div>
       <div class="block-content" id="rer-joinville"></div>
     </div>
     <div class="block">
       <h3 class="block-title">🚌 Bus 77 – Hippodrome de Vincennes</h3>
+      <div class="block-update" id="bus77-hippo-update"></div>
       <div class="block-content" id="bus77-hippo"></div>
     </div>
     <div class="block">
       <h3 class="block-title">🚌 Bus 201 – École du Breuil</h3>
+      <div class="block-update" id="bus201-breuil-update"></div>
       <div class="block-content" id="bus201-breuil"></div>
     </div>
     <div class="block">
       <h3 class="block-title">🚲 Vélib’ – Vincennes</h3>
+      <div class="block-update" id="velib-vincennes-update"></div>
       <div class="block-content" id="velib-vincennes"></div>
     </div>
     <div class="block">
       <h3 class="block-title">🚲 Vélib’ – Breuil</h3>
+      <div class="block-update" id="velib-breuil-update"></div>
       <div class="block-content" id="velib-breuil"></div>
     </div>
     <div class="block">
       <h3 class="block-title">🌤 Météo Vincennes</h3>
-      <div class="block-content" id="weather-update"></div>
+      <div class="block-update" id="weather-update"></div>
+      <div class="block-content" id="weather-content"></div>
     </div>
     <div class="block">
       <h3 class="block-title">🚦 Trafic routier</h3>
-      <div class="block-content" id="traffic-road-update"></div>
+      <div class="block-update" id="traffic-road-update"></div>
+      <div class="block-content" id="traffic-road-content"></div>
     </div>
   </div>
   <script src="script.js"></script>
