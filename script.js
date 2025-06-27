@@ -78,6 +78,47 @@ async function fetchPrimStop(line) {
     document.querySelector(line.elementId).textContent = `Erreur : ${e.message}`;
   }
 }
+async function fetchLineReports() {
+  setLoading("#lines-status");
+
+  // Construit l'URL Navitia Line Reports v2 pour toutes tes lignes
+  const lineIds = [
+    "STIF:Line::C01742:", // RER A
+    "STIF:Line::C01789:", // Bus 77
+    "STIF:Line::C01805:"  // Bus 201
+  ].map(encodeURIComponent).join("&");
+
+  const url = `${CORS_PROXY}https://prim.iledefrance-mobilites.fr/marketplace/navitia/coverage/fr-idf/lines/reports?filter=line.id%20IN%20(${lineIds})`;
+
+  try {
+    const data = await fetchWithRetry(url);
+    const reports = data?.reports || [];
+
+    if (reports.length === 0) {
+      document.querySelector("#lines-status").innerHTML = "✅ Toutes les lignes sont en service normal.";
+      updateTimestamp("#lines-status");
+      return;
+    }
+
+    let html = "<ul>";
+    reports.forEach(report => {
+      const lineName = report?.line?.name || "Ligne inconnue";
+      const severity = report?.severity?.effect || "État inconnu";
+      const text = report?.messages?.[0]?.text || "Aucune description.";
+      const color = severity.includes("NO_SERVICE") || severity.includes("SIGNIFICANT_DELAYS") ? "red" : "green";
+
+      html += `<li><strong>${lineName}</strong> : <span style="color:${color}">${severity}</span><br>${text}</li>`;
+    });
+    html += "</ul>";
+
+    document.querySelector("#lines-status").innerHTML = html;
+    updateTimestamp("#lines-status");
+
+  } catch (e) {
+    console.error(e);
+    document.querySelector("#lines-status").textContent = `Erreur : ${e.message}`;
+  }
+}
 
 // Gestion quota perturbations
 let generalMessageRequests = 0;
@@ -170,4 +211,7 @@ startPerturbationInterval();
 // Rafraîchissements
 setInterval(updateLines, 2 * 60 * 1000);
 setInterval(updateVelib, 15 * 60 * 1000);
+fetchLineReports();
+setInterval(fetchLineReports, 15 * 60 * 1000); // toutes les 15 minutes
+
 setInterval(fetchAndDisplayRSS, 60 * 60 * 1000, "https://ton-flux-rss.com/feed.xml", "#rss-news");
