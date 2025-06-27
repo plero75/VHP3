@@ -5,7 +5,7 @@ import csv from "csv-parser";
 import { DateTime } from "luxon";
 
 const LINES = ["RER A", "77", "201"];
-const GTFS_URL = "https://data.opendatasoft.com/explore/dataset/offre-horaires-tc-gtfs-idfm%40stif/download/?format=gtfs";
+const GTFS_URL = "https://opendata.iledefrance-mobilites.fr/explore/dataset/offre-horaires-tc-gtfs-idfm/download/?format=gtfs&timezone=Europe/Paris";
 const THIS_WEEK = {
   start: DateTime.now().startOf('week'),
   end: DateTime.now().endOf('week'),
