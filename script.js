@@ -177,3 +177,5 @@ updateVelib();
 setInterval(updateLines, 2 * 60 * 1000);
 setInterval(updateVelib, 15 * 60 * 1000);
 setInterval(updatePerturbations, 30 * 60 * 1000);
+fetchWeather();
+setInterval(fetchWeather, 15 * 60 * 1000);
