@@ -97,11 +97,16 @@ async function fetchWeather() {
   try {
     const data = await fetchWithRetry(url);
     const temp = data.current.temperature_2m;
+    const code = data.current.weathercode;
     const desc = {
       0:"Ciel clair",1:"Principalement clair",2:"Partiellement nuageux",3:"Couvert",45:"Brouillard",
       51:"Bruine",61:"Pluie légère",80:"Averses",95:"Orages"
-    }[data.current.weathercode] || "Inconnu";
-    document.querySelector("#meteo").innerHTML = `🌡 ${temp}°C, ${desc}`;
+    }[code] || "Inconnu";
+    const iconSrc = `img/${code}.png`; // ex: img/0.png, img/61.png, etc.
+    document.querySelector("#meteo").innerHTML = `
+      <img src="${iconSrc}" alt="Météo" style="height:48px;vertical-align:middle;margin-right:8px;">
+      🌡 ${temp}°C, ${desc}
+    `;
     updateTimestamp("#meteo");
   } catch (e) {
     console.error(e);
