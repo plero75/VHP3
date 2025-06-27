@@ -2,11 +2,18 @@ const API_PROXY_URL = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";
 const PRIM_API_BASE = "https://prim.iledefrance-mobilites.fr/marketplace";
 
 async function fetchRealTime(stopAreaId) {
+  const cacheKey = `cache-${stopAreaId}`;
+  if (sessionStorage[cacheKey]) {
+    return JSON.parse(sessionStorage[cacheKey]);
+  }
   const url = `${API_PROXY_URL}${PRIM_API_BASE}/stop-monitoring?MonitoringRef=${stopAreaId}`;
   const res = await fetchWithTimeout(url);
   if (!res.ok) throw new Error(`Erreur stop-monitoring ${res.status}`);
-  return await res.json();
+  const data = await res.json();
+  sessionStorage[cacheKey] = JSON.stringify(data);
+  return data;
 }
+
 
 async function fetchTraffic(lineId) {
   const url = `${API_PROXY_URL}${PRIM_API_BASE}/general-message?LineRef=${lineId}`;
@@ -62,32 +69,57 @@ async function fetchTrafficRoad() {
     updateElementText("traffic-road", "⚠️ Données trafic indisponibles");
   }
 }
+async function fetchWithTimeout(resource, options = {}, timeout = 8000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(resource, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      throw new Error('La requête a expiré (timeout)');
+    }
+    throw e;
+  }
+}
 
 async function updateStop(elementId, stopId, lineId) {
-  const now = new Date().toLocaleString();
   updateElementTime(`${elementId}-update`);
+  const tripsText = await processTrips(stopId);
+  updateElementText(elementId, tripsText);
+  const trafficText = await processTraffic(lineId);
+  updateElementText(`${elementId}-traffic`, trafficText);
+}
+async function processTrips(stopId) {
   const realTime = await fetchRealTime(stopId);
   const trips = realTime.Siri.ServiceDelivery.StopMonitoringDelivery[0].MonitoredStopVisit || [];
-  const nextTrips = trips.slice(0, 4).map(t => {
-    const aimedRaw = t.MonitoredVehicleJourney.MonitoredCall.AimedDepartureTime;
-    const expectedRaw = t.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime;
-    const aimed = aimedRaw ? new Date(aimedRaw) : null;
-    const expected = new Date(expectedRaw);
-    const delay = aimed ? (expected - aimed) / 60000 : 0;
-    const timeLeft = Math.round((expected - new Date()) / 60000);
-    const delayStr = delay > 1 ? ` (retard +${Math.round(delay)} min)` : "";
-    const imminent = timeLeft <= 1.5 ? "🟢 imminent" : "";
-    const aimedStr = aimed ? aimed.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : "—";
-    const expectedStr = expected.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-    return `🕐 ${aimedStr} → ${expectedStr} ⏳ dans ${timeLeft} min${delayStr} ${imminent}`;
-  }).join("\n");
-  updateElementText(elementId, nextTrips || "❌ Aucun passage");
+  return trips.slice(0, 4).map(t => formatTrip(t)).join("\n") || "❌ Aucun passage";
+}
 
+function formatTrip(t) {
+  const aimedRaw = t.MonitoredVehicleJourney.MonitoredCall.AimedDepartureTime;
+  const expectedRaw = t.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime;
+  const aimed = aimedRaw ? new Date(aimedRaw) : null;
+  const expected = new Date(expectedRaw);
+  const delay = aimed ? (expected - aimed) / 60000 : 0;
+  const timeLeft = Math.round((expected - new Date()) / 60000);
+  const delayStr = delay > 1 ? ` (retard +${Math.round(delay)} min)` : "";
+  const imminent = timeLeft <= 1.5 ? "🟢 imminent" : "";
+  const aimedStr = aimed ? aimed.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : "—";
+  const expectedStr = expected.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  return `🕐 ${aimedStr} → ${expectedStr} ⏳ dans ${timeLeft} min${delayStr} ${imminent}`;
+}
+
+async function processTraffic(lineId) {
   const traffic = await fetchTraffic(lineId);
   const disruptions = traffic.Siri.ServiceDelivery.GeneralMessageDelivery[0].InfoMessage || [];
-  const trafficInfo = disruptions.map(d => d.InfoMessageText?.[0]?.value).join("\n\n");
-  updateElementText(`${elementId}-traffic`, trafficInfo || "✅ Pas de perturbation signalée");
+  return disruptions.map(d => d.InfoMessageText?.[0]?.value).join("\n\n") || "✅ Pas de perturbation signalée";
 }
+
 
 function updateElementTime(elementId) {
   const now = new Date().toLocaleString();
