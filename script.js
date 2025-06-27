@@ -61,9 +61,30 @@ async function fetchPrimStop(line) {
     }
     let html = "<ul>";
     visits.slice(0, 4).forEach((v, i) => {
-      const mc = v.MonitoredVehicleJourney?.MonitoredCall;
+      const mvj = v.MonitoredVehicleJourney;
+      const mc = mvj?.MonitoredCall;
       const isLast = i === visits.length - 1;
-      html += formatTrip(mc?.AimedDepartureTime, mc?.ExpectedDepartureTime, isLast);
+      const aimed = mc?.AimedDepartureTime, expected = mc?.ExpectedDepartureTime;
+
+      // Récupération destination et direction
+      const destination = mvj?.DestinationName?.[0]?.value || "Destination inconnue";
+      const direction = mvj?.DirectionName?.[0]?.value || "";
+
+      const tripLine = formatTrip(aimed, expected, isLast);
+
+      html += `<li>${tripLine}<br>🚩 <strong>${destination}</strong> ${direction}`;
+
+      // Ajout des arrêts desservis
+      const onward = mvj.OnwardCalls?.OnwardCall;
+      if (onward && onward.length > 0) {
+        const stops = onward
+          .map(o => o?.StopPointName?.[0]?.value)
+          .filter(Boolean)
+          .join(" ➔ ");
+        html += `<div style="font-size:0.85em; color:#555;">🛤️ ${stops}</div>`;
+      }
+
+      html += "</li>";
     });
     html += "</ul>";
     document.querySelector(line.elementId).innerHTML = html;
