@@ -110,31 +110,41 @@ async function fetchTraffic(lineId) {
   return await res.json();
 }
 
-async function updateStop(elementId, stopIds, lineId) {
-  updateElementTime(`${elementId}-update`);
+async function updateStop(elementIdPrefix, stopIds, lineId) {
+  updateElementTime(`${elementIdPrefix}-update`);
   const [tripsText, trafficText] = await Promise.all([
     processTrips(stopIds),
     processTraffic(lineId)
   ]);
   const finalText = tripsText + "\n\n🚦 Info trafic :\n" + trafficText;
-  updateElementText(elementId, finalText);
+  updateElementText(elementIdPrefix, finalText);
 }
 
 function updateElementTime(elementId) {
-  const now = new Date().toLocaleString();
-  document.getElementById(elementId).textContent = `Dernière mise à jour : ${now}`;
+  const el = document.getElementById(elementId);
+  if (el) {
+    const now = new Date().toLocaleString();
+    el.textContent = `Dernière mise à jour : ${now}`;
+  }
 }
 
 function updateElementText(elementId, text) {
-  document.getElementById(elementId).textContent = text;
+  const el = document.getElementById(elementId);
+  if (el) {
+    el.innerHTML = text.replace(/\n/g, "<br>");
+  }
 }
 
 function updateGlobalDateTime() {
   const now = new Date();
-  document.getElementById("current-time").textContent = `🕒 ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+  const el = document.getElementById("current-time");
+  if (el) {
+    el.textContent = `🕒 ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+  }
 }
-async function fetchVelib(stationId, elementId) {
-  updateElementTime("velib-update");
+
+async function fetchVelib(stationId, elementIdPrefix) {
+  updateElementTime(`${elementIdPrefix}-update`);
   const url = "https://velib-metropole-opendata.smoove.pro/opendata/Velib_Metropole/station_status.json";
   try {
     const res = await fetchWithTimeout(url);
@@ -142,10 +152,10 @@ async function fetchVelib(stationId, elementId) {
     const data = await res.json();
     const station = data.data.stations.find(s => s.station_id === stationId);
     if (!station) throw new Error("Station Vélib introuvable");
-    updateElementText(elementId, `🚲 ${station.num_bikes_available} vélos - 🅿️ ${station.num_docks_available} bornes`);
+    updateElementText(elementIdPrefix, `🚲 ${station.num_bikes_available} vélos - 🅿️ ${station.num_docks_available} bornes`);
   } catch (e) {
     console.warn("Erreur Vélib:", e);
-    updateElementText(elementId, "⚠️ Données Vélib indisponibles");
+    updateElementText(elementIdPrefix, "⚠️ Données Vélib indisponibles");
   }
 }
 
@@ -158,10 +168,10 @@ async function fetchWeather() {
     const data = await res.json();
     const temp = data.current.temperature_2m;
     const desc = getWeatherDescription(data.current.weathercode);
-    updateElementText("weather-update", `🌡 ${temp}°C, ${desc}`);
+    updateElementText("weather-content", `🌡 ${temp}°C, ${desc}`);
   } catch (e) {
     console.warn("Erreur météo:", e);
-    updateElementText("weather-update", "⚠️ Météo indisponible");
+    updateElementText("weather-content", "⚠️ Météo indisponible");
   }
 }
 
@@ -173,10 +183,10 @@ async function fetchTrafficRoad() {
     if (!res.ok) throw new Error(`Erreur trafic routier ${res.status}`);
     const data = await res.json();
     const infos = data.records.map(r => `🛣 ${r.fields.route} : ${r.fields.etat_circulation}`).join("<br>") || "✅ Trafic normal";
-    updateElementText("traffic-road-update", infos);
+    updateElementText("traffic-road-content", infos);
   } catch (e) {
     console.warn("Erreur trafic routier:", e);
-    updateElementText("traffic-road-update", "⚠️ Trafic routier indisponible");
+    updateElementText("traffic-road-content", "⚠️ Trafic routier indisponible");
   }
 }
 
@@ -187,8 +197,8 @@ async function refreshAll() {
       updateStop("rer-joinville", STOP_IDS.rer_joinville, "STIF:Line::C01742:"),
       updateStop("bus77-hippo", STOP_IDS.bus77_hippo, "STIF:Line::C01789:"),
       updateStop("bus201-breuil", STOP_IDS.bus201_breuil, "STIF:Line::C01805:"),
-      fetchVelib(VELIB_IDS.vincennes, "velib-update"),
-      fetchVelib(VELIB_IDS.breuil, "velib-update"),
+      fetchVelib(VELIB_IDS.vincennes, "velib-vincennes"),
+      fetchVelib(VELIB_IDS.breuil, "velib-breuil"),
       fetchWeather(),
       fetchTrafficRoad()
     ]);
@@ -196,9 +206,6 @@ async function refreshAll() {
     console.error("Erreur refreshAll:", e);
   }
 }
-
-
-
 
 refreshAll();
 setInterval(refreshAll, 60000);
