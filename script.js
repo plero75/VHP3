@@ -115,7 +115,7 @@ async function fetchPrimInfo(line) {
 
 async function fetchVelib(stationId, elementId) {
   setLoading(elementId);
-  const url = `${CORS_PROXY}https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json`;
+  const url = `https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json`;
   try {
     const data = await fetchWithRetry(url);
     const station = data?.data?.stations?.find(s => s.station_id === stationId);
