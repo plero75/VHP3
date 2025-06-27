@@ -158,8 +158,9 @@ async function refreshAll() {
       updateStop("rer-joinville", "STIF:StopArea:SP:43135:", "STIF:Line::C01742:"),
       updateStop("bus77-hippo", "STIF:StopArea:SP:463641:", "STIF:Line::C01789:"),
       updateStop("bus201-breuil", "STIF:StopArea:SP:463644:", "STIF:Line::C01805:"),
-      fetchVelib("12128", "velib-vincennes"),
-      fetchVelib("12163", "velib-breuil"),
+fetchVelib(VELIB_IDS.vincennes, "velib-vincennes"),
+fetchVelib(VELIB_IDS.breuil, "velib-breuil"),
+
       fetchWeather(),
       fetchTrafficRoad()
     ]);
