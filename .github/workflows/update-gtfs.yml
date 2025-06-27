@@ -1,15 +1,17 @@
-name: Update GTFS filtered
+name: Update GTFS filtered from local cache
 
 on:
   schedule:
-    - cron: '0 4 * * 1'
+    - cron: '0 4 * * 1'  # Chaque lundi à 4h
   workflow_dispatch:
 
 jobs:
   update-gtfs:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -19,13 +21,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run GTFS filter script
+      - name: Run GTFS filter script using local cache
         run: node app.js
 
-      - name: Commit and push JSON
+      - name: Commit and push filtered JSON
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add filtered_trips.json filtered_stop_times.json
-          git commit -m "🔄 Update GTFS filtered [skip ci]" || echo "No changes"
+          git commit -m "🔄 Update GTFS filtered from local cache [skip ci]" || echo "No changes"
           git push
