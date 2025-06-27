@@ -19,7 +19,14 @@
     }
     h2 { margin-top: 0; }
 
-    /* Bandeau défilant */
+    #alerts {
+      color: red;
+      font-weight: bold;
+      font-size: 1.2em;
+      margin-bottom: 20px;
+    }
+
+    /* Bandeau actualités */
     #rss-news {
       overflow: hidden;
       white-space: nowrap;
@@ -48,12 +55,40 @@
 
   <h1>🚌 Dashboard Temps Réel - Transports & Actualités</h1>
 
+  <div id="alerts"></div>
+
   <section>
     <h2>📰 Actualités</h2>
     <div id="rss-news">Chargement...</div>
   </section>
 
-  <!-- Ici, tu peux ajouter d'autres sections comme tes RER, Bus, Météo, etc. -->
+  <section>
+    <h2>🚆 RER A</h2>
+    <div id="rer-a">Chargement...</div>
+    <div id="info-rer-a"></div>
+  </section>
+
+  <section>
+    <h2>🚌 Bus 77</h2>
+    <div id="bus-77">Chargement...</div>
+    <div id="info-bus-77"></div>
+  </section>
+
+  <section>
+    <h2>🚌 Bus 201</h2>
+    <div id="bus-201">Chargement...</div>
+    <div id="info-bus-201"></div>
+  </section>
+
+  <section>
+    <h2>🚲 Vélib’ Vincennes</h2>
+    <div id="velib-vincennes">Chargement...</div>
+  </section>
+
+  <section>
+    <h2>🚲 Vélib’ Breuil</h2>
+    <div id="velib-breuil">Chargement...</div>
+  </section>
 
   <script src="script.js"></script>
 </body>
