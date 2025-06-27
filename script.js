@@ -84,6 +84,34 @@ async function fetchPrimInfo(line) {
     document.querySelector(line.infoId).textContent = `Erreur : ${e.message}`;
   }
 }
+async function fetchAndDisplayRSS(url, elementId) {
+  setLoading(elementId);
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
+    const text = await res.text();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, "application/xml");
+    const items = Array.from(xml.querySelectorAll("item")).slice(0, 5);
+    const html = items.map(item => {
+      const title = item.querySelector("title")?.textContent || "Sans titre";
+      return `<li>${title}</li>`;
+    }).join("");
+    document.querySelector(elementId).innerHTML = `<ul>${html}</ul>`;
+    updateTimestamp(elementId);
+  } catch (e) {
+    console.error(e);
+    document.querySelector(elementId).textContent = `Erreur : ${e.message}`;
+  }
+}
+
+// Premier chargement RSS Franceinfo
+fetchAndDisplayRSS("https://www.francetvinfo.fr/titres.rss", "#rss-news");
+
+// Rafraîchissement toutes les heures
+setInterval(() => {
+  fetchAndDisplayRSS("https://www.francetvinfo.fr/titres.rss", "#rss-news");
+}, 60 * 60 * 1000);
 
 // Vélib'
 async function fetchVelib(stationId, elementId) {
