@@ -27,6 +27,30 @@ async function fetchWithRetry(url, options = {}, retries = 1) {
     else throw e;
   }
 }
+async function fetchWeather() {
+  const url = "https://api.open-meteo.com/v1/forecast?latitude=48.835&longitude=2.43&current=temperature_2m,weathercode&timezone=Europe%2FParis";
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
+    const data = await res.json();
+    const temp = data.current.temperature_2m;
+    const code = data.current.weathercode;
+    const desc = {
+      0:"Ciel clair",1:"Principalement clair",2:"Partiellement nuageux",3:"Couvert",45:"Brouillard",
+      51:"Bruine",61:"Pluie légère",80:"Averses",95:"Orages"
+    }[code] || "Inconnu";
+    const iconSrc = `img/${code}.png`;
+    document.querySelector("#meteo").innerHTML = `
+      <img src="${iconSrc}" alt="Météo" style="height:48px;vertical-align:middle;margin-right:8px;">
+      🌡 ${temp}°C, ${desc}
+    `;
+    updateTimestamp("#meteo");
+  } catch (e) {
+    console.error(e);
+    document.querySelector("#meteo").textContent = `Erreur : ${e.message}`;
+  }
+}
+
 
 // Horaires RER / Bus
 async function fetchPrimStop(line) {
