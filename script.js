@@ -1,10 +1,10 @@
 const CORS_PROXY = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";
 
-// Lignes à suivre
+// Définition des lignes RER et bus avec tes MonitoringRefs et LineRefs officiels
 const LINES = [
-  { name: "RER A", monitoringRef: "STIF:StopArea:SP:43135:", lineRef: "STIF:Line::C01742:", elementId: "#rer-a", infoId: "#info-rer-a" },
-  { name: "Bus 77", monitoringRef: "STIF:StopArea:SP:463641:", lineRef: "STIF:Line::C01789:", elementId: "#bus-77", infoId: "#info-bus-77" },
-  { name: "Bus 201", monitoringRef: "STIF:StopArea:SP:463644:", lineRef: "STIF:Line::C01805:", elementId: "#bus-201", infoId: "#info-bus-201" }
+  { name: "RER A", monitoringRef: "STIF:StopPoint:Q:43135:", lineRef: "STIF:Line::C01742:", elementId: "#rer-a", infoId: "#info-rer-a" },
+  { name: "Bus 77", monitoringRef: "STIF:StopPoint:Q:463641:", lineRef: "STIF:Line::C01789:", elementId: "#bus-77", infoId: "#info-bus-77" },
+  { name: "Bus 201", monitoringRef: "STIF:StopPoint:Q:463644:", lineRef: "STIF:Line::C01805:", elementId: "#bus-201", infoId: "#info-bus-201" }
 ];
 
 function setLoading(elementId) {
@@ -28,23 +28,7 @@ async function fetchWithRetry(url, options = {}, retries = 1) {
   }
 }
 
-// Horaires
-function formatTrip(aimed, expected, isLast) {
-  const aimedDate = aimed ? new Date(aimed) : null;
-  const expectedDate = expected ? new Date(expected) : null;
-  const now = new Date();
-  const delay = aimedDate && expectedDate ? Math.round((expectedDate - aimedDate) / 60000) : 0;
-  const timeLeft = expectedDate ? Math.round((expectedDate - now) / 60000) : null;
-  if (timeLeft !== null) {
-    const imminent = timeLeft <= 1.5 ? "🟢 imminent" : `⏳ dans ${timeLeft} min`;
-    const delayStr = delay > 1 ? ` (retard +${delay} min)` : "";
-    const lastStr = isLast ? " 🔴 Dernier passage" : "";
-    return `<li>🕐 ${expectedDate.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} ${imminent}${delayStr}${lastStr}`;
-  } else {
-    return "<li>❌ Passage annulé ou inconnu";
-  }
-}
-
+// Horaires RER / Bus
 async function fetchPrimStop(line) {
   setLoading(line.elementId);
   const url = `${CORS_PROXY}https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=${line.monitoringRef}&LineRef=${line.lineRef}`;
@@ -59,10 +43,18 @@ async function fetchPrimStop(line) {
     let html = "<ul>";
     visits.slice(0, 4).forEach((v, i) => {
       const mvj = v.MonitoredVehicleJourney, mc = mvj?.MonitoredCall;
-      const tripLine = formatTrip(mc?.AimedDepartureTime, mc?.ExpectedDepartureTime, i === visits.length-1);
+      const aimed = mc?.AimedDepartureTime, expected = mc?.ExpectedDepartureTime;
+      const now = new Date();
+      const aimedDate = aimed ? new Date(aimed) : null;
+      const expectedDate = expected ? new Date(expected) : null;
+      const delay = aimedDate && expectedDate ? Math.round((expectedDate - aimedDate) / 60000) : 0;
+      const timeLeft = expectedDate ? Math.round((expectedDate - now) / 60000) : null;
+      const imminent = timeLeft !== null ? (timeLeft <= 1.5 ? "🟢 imminent" : `⏳ dans ${timeLeft} min`) : "";
+      const delayStr = delay > 1 ? ` (retard +${delay} min)` : "";
+      const lastStr = i === visits.length - 1 ? " 🔴 Dernier passage" : "";
       const destination = mvj?.DestinationName?.[0]?.value || "Destination inconnue";
       const direction = mvj?.DirectionName?.[0]?.value || "";
-      html += `${tripLine}<br>🚩 <strong>${destination}</strong> ${direction}`;
+      html += `<li>🕐 ${expectedDate?.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} ${imminent}${delayStr}${lastStr}<br>🚩 <strong>${destination}</strong> ${direction}`;
       const onward = mvj.OnwardCalls?.OnwardCall;
       if (onward?.length > 0) {
         const stops = onward.map(o => o?.StopPointName?.[0]?.value).filter(Boolean).join(" ➔ ");
@@ -78,67 +70,9 @@ async function fetchPrimStop(line) {
     document.querySelector(line.elementId).textContent = `Erreur : ${e.message}`;
   }
 }
-async function fetchLineReports() {
-  setLoading("#lines-status");
 
-  // Construit l'URL Navitia Line Reports v2 pour toutes tes lignes
-  const lineIds = [
-    "STIF:Line::C01742:", // RER A
-    "STIF:Line::C01789:", // Bus 77
-    "STIF:Line::C01805:"  // Bus 201
-  ].map(encodeURIComponent).join("&");
-
-  const url = `${CORS_PROXY}https://prim.iledefrance-mobilites.fr/marketplace/navitia/coverage/fr-idf/lines/reports?filter=line.id%20IN%20(${lineIds})`;
-
-  try {
-    const data = await fetchWithRetry(url);
-    const reports = data?.reports || [];
-
-    if (reports.length === 0) {
-      document.querySelector("#lines-status").innerHTML = "✅ Toutes les lignes sont en service normal.";
-      updateTimestamp("#lines-status");
-      return;
-    }
-
-    let html = "<ul>";
-    reports.forEach(report => {
-      const lineName = report?.line?.name || "Ligne inconnue";
-      const severity = report?.severity?.effect || "État inconnu";
-      const text = report?.messages?.[0]?.text || "Aucune description.";
-      const color = severity.includes("NO_SERVICE") || severity.includes("SIGNIFICANT_DELAYS") ? "red" : "green";
-
-      html += `<li><strong>${lineName}</strong> : <span style="color:${color}">${severity}</span><br>${text}</li>`;
-    });
-    html += "</ul>";
-
-    document.querySelector("#lines-status").innerHTML = html;
-    updateTimestamp("#lines-status");
-
-  } catch (e) {
-    console.error(e);
-    document.querySelector("#lines-status").textContent = `Erreur : ${e.message}`;
-  }
-}
-
-// Gestion quota perturbations
-let generalMessageRequests = 0;
-const GENERAL_MESSAGE_QUOTA = 20000;
-const GENERAL_MESSAGE_THRESHOLD = GENERAL_MESSAGE_QUOTA * 0.8;
-let perturbationInterval = 30 * 60 * 1000;
-let perturbationIntervalId = null;
-
-function startPerturbationInterval() {
-  if (perturbationIntervalId) clearInterval(perturbationIntervalId);
-  perturbationIntervalId = setInterval(updatePerturbations, perturbationInterval);
-}
-
+// Perturbations (optionnel selon quota)
 async function fetchPrimInfo(line) {
-  generalMessageRequests++;
-  if (generalMessageRequests >= GENERAL_MESSAGE_THRESHOLD && perturbationInterval < 2 * 60 * 60 * 1000) {
-    document.querySelector("#alerts").innerHTML = "⚠️ Quota perturbations proche de la limite : mise à jour toutes les 2h.";
-    perturbationInterval = 2 * 60 * 60 * 1000;
-    startPerturbationInterval();
-  }
   const url = `${CORS_PROXY}https://prim.iledefrance-mobilites.fr/marketplace/general-message?LineRef=${line.lineRef}`;
   try {
     const data = await fetchWithRetry(url);
@@ -147,11 +81,11 @@ async function fetchPrimInfo(line) {
     document.querySelector(line.infoId).innerHTML = messages || "✅ Pas de perturbation signalée.";
   } catch (e) {
     console.error(e);
-    document.querySelector(line.infoId).textContent = `Erreur info : ${e.message}`;
+    document.querySelector(line.infoId).textContent = `Erreur : ${e.message}`;
   }
 }
 
-// Vélib’ via PRIM
+// Vélib'
 async function fetchVelib(stationId, elementId) {
   setLoading(elementId);
   const url = `${CORS_PROXY}https://prim.iledefrance-mobilites.fr/marketplace/velib/station_status.json`;
@@ -172,46 +106,22 @@ async function fetchVelib(stationId, elementId) {
   }
 }
 
-// Bandeau actualités RSS
-async function fetchAndDisplayRSS(url, elementId) {
-  setLoading(elementId);
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
-    const text = await res.text();
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(text, "application/xml");
-    const items = Array.from(xml.querySelectorAll("item")).slice(0, 5);
-    const html = items.map(item => `<li>${item.querySelector("title")?.textContent || "Sans titre"}</li>`).join("");
-    document.querySelector(elementId).innerHTML = `<ul>${html}</ul>`;
-    updateTimestamp(elementId);
-  } catch (e) {
-    console.error(e);
-    document.querySelector(elementId).textContent = `Erreur : ${e.message}`;
-  }
-}
-
-// Fonctions d'update
+// Mises à jour globales
 async function updateLines() { await Promise.all(LINES.map(line => fetchPrimStop(line))); }
 async function updatePerturbations() { await Promise.all(LINES.map(line => fetchPrimInfo(line))); }
 async function updateVelib() {
   await Promise.all([
     fetchVelib("1074333296", "#velib-vincennes"),
-    fetchVelib("1066333450", "#velib-breuil")
+    fetchVelib("508042092", "#velib-breuil")
   ]);
 }
 
-// Exécution initiale
+// Premier chargement
 updateLines();
-updateVelib();
 updatePerturbations();
-fetchAndDisplayRSS("https://ton-flux-rss.com/feed.xml", "#rss-news");
-startPerturbationInterval();
+updateVelib();
 
-// Rafraîchissements
+// Rafraîchissements périodiques
 setInterval(updateLines, 2 * 60 * 1000);
 setInterval(updateVelib, 15 * 60 * 1000);
-fetchLineReports();
-setInterval(fetchLineReports, 15 * 60 * 1000); // toutes les 15 minutes
-
-setInterval(fetchAndDisplayRSS, 60 * 60 * 1000, "https://ton-flux-rss.com/feed.xml", "#rss-news");
+setInterval(updatePerturbations, 30 * 60 * 1000);
