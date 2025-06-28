@@ -40,16 +40,14 @@ async function fetchPrimStop(line) {
     let html = "<ul>";
     visits.slice(0, 4).forEach((v) => {
       const mvj = v.MonitoredVehicleJourney, mc = mvj?.MonitoredCall;
-      const aimed = mc?.AimedDepartureTime, expected = mc?.ExpectedDepartureTime;
-      const now = new Date();
-      const expectedDate = expected ? new Date(expected) : null;
-      const timeLeft = expectedDate ? Math.round((expectedDate - now) / 60000) : null;
+      const expectedRaw = mc?.ExpectedDepartureTime;
+      const expectedDate = expectedRaw ? new Date(expectedRaw) : null;
+      const timeLeft = expectedDate ? Math.round((expectedDate - new Date()) / 60000) : null;
       const timeStr = expectedDate?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || "--:--";
       const minuteStr = timeLeft !== null ? `(dans ${timeLeft} min)` : "";
-      html += `
-        <li class="passage">
-          <div class="passage-time">${timeStr} ${minuteStr}</div>
-        </li>`;
+      const dest = mvj.DestinationName?.[0]?.value || "Destination inconnue";
+      const imminentClass = timeLeft !== null && timeLeft <= 2 ? "imminent" : "";
+      html += `<li class="passage ${imminentClass}"><div>${timeStr} ${minuteStr} ➔ ${dest}</div></li>`;
     });
     html += "</ul>";
     document.querySelector(line.elementId).innerHTML = html;
@@ -105,16 +103,11 @@ async function fetchWeather() {
     if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
     const data = await res.json();
     const temp = data.current.temperature_2m;
-    const code = data.current.weathercode;
     const desc = {
       0:"Ciel clair",1:"Principalement clair",2:"Partiellement nuageux",3:"Couvert",45:"Brouillard",
       51:"Bruine",61:"Pluie légère",80:"Averses",95:"Orages"
-    }[code] || "Inconnu";
-    const iconSrc = `img/${code}.png`;
-    document.querySelector("#meteo").innerHTML = `
-      <img src="${iconSrc}" alt="Météo" style="height:48px;vertical-align:middle;margin-right:8px;">
-      🌡 ${temp}°C, ${desc}
-    `;
+    }[data.current.weathercode] || "Inconnu";
+    document.querySelector("#meteo").innerHTML = `🌡 ${temp}°C, ${desc}`;
     updateTimestamp("#meteo");
   } catch (e) {
     console.error(e);
@@ -137,6 +130,15 @@ async function fetchAndDisplayRSS(url, elementId) {
     document.querySelector(elementId).textContent = `Erreur RSS : ${e.message}`;
   }
 }
+
+function updateLines() { for (const line of LINES) fetchPrimStop(line); }
+function updatePerturbations() { for (const line of LINES) fetchPrimInfo(line); }
+function updateVelib() {
+  fetchVelib("1074333296", "#velib-vincennes");
+  fetchVelib("508042092", "#velib-breuil");
+}
+
+// GTFS info
 fetch("public/gtfs-info.json")
   .then(res => res.json())
   .then(data => {
@@ -149,7 +151,7 @@ fetch("public/gtfs-info.json")
     document.querySelector("#stops-list").textContent = "🛤️ Arrêts : données indisponibles";
   });
 
-// Appels habituels :
+// Appels initiaux
 updateLines();
 updatePerturbations();
 updateVelib();
