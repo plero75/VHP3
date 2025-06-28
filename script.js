@@ -241,7 +241,7 @@ fetchAndDisplayRSS("https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https
 // Rafraîchissement toutes les heures
 setInterval(() => {
 fetchAndDisplayRSS("https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https://www.francetvinfo.fr/titres.rss", "#rss-news"),
-}, 60 * 60 * 1000);
+}, 60 * 60 * 1000),
       fetchWeather(),
       fetchTrafficRoad()
     ]);
