@@ -1,169 +1,158 @@
-const API_PROXY_URL = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";
-const PRIM_API_BASE = "https://prim.iledefrance-mobilites.fr/marketplace";
-const VELIB_IDS = {
-  vincennes: "1074333296",
-  breuil: "508042092"
-};
+const CORS_PROXY = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";
 
-const STOP_IDS = {
-  rer_joinville: ["STIF:StopPoint:Q:39406:"],
-  bus77_hippo: ["STIF:StopPoint:Q:463640:", "STIF:StopPoint:Q:463647:"],
-  bus201_breuil: ["STIF:StopPoint:Q:463646:", "STIF:StopPoint:Q:463643:"],
-};
+const LINES = [
+  { name: "RER A", monitoringRef: "STIF:StopPoint:Q:43135:", lineRef: "STIF:Line::C01742:", elementId: "#rer-a", infoId: "#info-rer-a" },
+  { name: "Bus 77", monitoringRef: "STIF:StopPoint:Q:463641:", lineRef: "STIF:Line::C01789:", elementId: "#bus-77", infoId: "#info-bus-77" },
+  { name: "Bus 201", monitoringRef: "STIF:StopPoint:Q:463644:", lineRef: "STIF:Line::C01805:", elementId: "#bus-201", infoId: "#info-bus-201" }
+];
 
-function logError(msg) {
-  const log = document.getElementById("debug-log");
-  if (log) log.textContent = msg;
-  console.error(msg);
+function setLoading(elementId) {
+  document.querySelector(elementId).innerHTML = "🔄 Chargement...";
 }
 
-async function fetchWithTimeout(resource, options = {}, timeout = 8000, retries = 2) {
-  let attempt = 0;
-  while (attempt <= retries) {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    try {
-      const response = await fetch(resource, {...options, signal: controller.signal});
-      clearTimeout(id);
-      return response;
-    } catch (e) {
-      clearTimeout(id);
-      if (e.name === 'AbortError') {
-        logError(`Tentative ${attempt + 1} échouée (Timeout)`);
-        if (attempt < retries) {
-          attempt++;
-          continue;
-        } else {
-          throw new Error('Requête échouée après plusieurs tentatives (Timeout)');
-        }
-      }
-      throw e;
+function updateTimestamp(elementId) {
+  const now = new Date();
+  const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  document.querySelector(elementId).insertAdjacentHTML('beforeend', `<div style="font-size:0.8em;">🕒 Mise à jour : ${time}</div>`);
+}
+
+async function fetchWithRetry(url, options = {}, retries = 1) {
+  try {
+    const res = await fetch(url, options);
+    if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    if (retries > 0) return fetchWithRetry(url, options, retries - 1);
+    else throw e;
+  }
+}
+
+async function fetchPrimStop(line) {
+  setLoading(line.elementId);
+  const url = `${CORS_PROXY}https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=${line.monitoringRef}&LineRef=${line.lineRef}`;
+  try {
+    const data = await fetchWithRetry(url);
+    const visits = data?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || [];
+    if (!visits.length) {
+      document.querySelector(line.elementId).innerHTML = "🚫 Aucun passage disponible.";
+      return;
     }
-  }
-}
-
-async function fetchRealTime(stopAreaId) {
-  const cacheKey = `cache-${stopAreaId}`;
-  const cachedData = sessionStorage[cacheKey];
-  if (cachedData) {
-    const { timestamp, data } = JSON.parse(cachedData);
-    if (Date.now() - timestamp < 60000) return data;
-  }
-  const url = `${API_PROXY_URL}${PRIM_API_BASE}/stop-monitoring?MonitoringRef=${stopAreaId}`;
-  const res = await fetchWithTimeout(url);
-  if (!res.ok) throw new Error(`Erreur stop-monitoring ${res.status}`);
-  const data = await res.json();
-  if (!data?.Siri?.ServiceDelivery?.StopMonitoringDelivery) throw new Error("Réponse inattendue : StopMonitoringDelivery manquant");
-  sessionStorage[cacheKey] = JSON.stringify({ timestamp: Date.now(), data });
-  return data;
-}
-
-async function processTrips(stopIds) {
-  const results = await Promise.all(stopIds.map(id => fetchRealTime(id)));
-  const trips = results.flatMap(rt => rt?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || []);
-  if (trips.length === 0) return "❌ Aucun passage ou service terminé.";
-  trips.sort((a, b) => {
-    const aTime = new Date(a.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime);
-    const bTime = new Date(b.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime);
-    return aTime - bTime;
-  });
-  return trips.slice(0, 4).map(t => formatTrip(t)).join("\n\n");
-}
-
-function formatTrip(t) {
-  const call = t?.MonitoredVehicleJourney?.MonitoredCall;
-  const journey = t?.MonitoredVehicleJourney;
-  if (!call || !journey) return "⛔ Donnée manquante";
-
-  const aimedRaw = call.AimedDepartureTime;
-  const expectedRaw = call.ExpectedDepartureTime;
-  const aimed = aimedRaw ? new Date(aimedRaw) : null;
-  const expected = expectedRaw ? new Date(expectedRaw) : null;
-  if (!expected) return "⛔ Horaire indisponible pour ce passage.";
-
-  const delay = aimed ? (expected - aimed) / 60000 : 0;
-  const timeLeft = Math.round((expected - new Date()) / 60000);
-  const delayStr = delay > 1 ? ` (+${Math.round(delay)} min)` : "";
-  const imminent = timeLeft <= 1.5;
-  const expectedStr = expected.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-
-  const destination = journey.DestinationName?.[0]?.value || "Destination inconnue";
-  const timeInfo = imminent ? "🟢 imminent" : `⏳ ${timeLeft} min`;
-
-  return `🚌 ${expectedStr} (${timeInfo}${delayStr}) → ${destination}`;
-}
-
-async function processTraffic(lineId) {
-  const traffic = await fetchTraffic(lineId);
-  const disruptions = traffic?.Siri?.ServiceDelivery?.GeneralMessageDelivery?.[0]?.InfoMessage || [];
-  return disruptions.length > 0
-    ? disruptions.map(d => {
-        const messages = d.Message || [];
-        return messages.map(m => {
-          const text = m.MessageText?.value || "Message non disponible";
-          return `⚠️ ${text}`;
-        }).join("\n\n");
-      }).join("\n\n")
-    : "✅ Pas de perturbation signalée";
-}
-
-async function fetchTraffic(lineId) {
-  const url = `${API_PROXY_URL}${PRIM_API_BASE}/general-message?LineRef=${lineId}`;
-  const res = await fetchWithTimeout(url);
-  if (!res.ok) throw new Error(`Erreur infos trafic ${res.status}`);
-  return await res.json();
-}
-
-async function updateStop(elementIdPrefix, stopIds, lineId) {
-  updateElementTime(`${elementIdPrefix}-update`);
-  try {
-    const [tripsText, trafficText] = await Promise.all([
-      processTrips(stopIds),
-      processTraffic(lineId)
-    ]);
-    const finalText = tripsText + "\n\n🚦 Info trafic :\n" + trafficText;
-    updateElementText(elementIdPrefix, finalText);
+    let html = "<ul>";
+    visits.slice(0, 4).forEach((v) => {
+      const mvj = v.MonitoredVehicleJourney, mc = mvj?.MonitoredCall;
+      const aimed = mc?.AimedDepartureTime, expected = mc?.ExpectedDepartureTime;
+      const now = new Date();
+      const expectedDate = expected ? new Date(expected) : null;
+      const timeLeft = expectedDate ? Math.round((expectedDate - now) / 60000) : null;
+      const timeStr = expectedDate?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || "--:--";
+      const minuteStr = timeLeft !== null ? `(dans ${timeLeft} min)` : "";
+      html += `
+        <li class="passage">
+          <div class="passage-time">${timeStr} ${minuteStr}</div>
+        </li>`;
+    });
+    html += "</ul>";
+    document.querySelector(line.elementId).innerHTML = html;
+    updateTimestamp(line.elementId);
   } catch (e) {
-    logError(`Erreur updateStop ${elementIdPrefix}: ${e.message}`);
-    updateElementText(elementIdPrefix, "⚠️ Données indisponibles");
+    console.error(e);
+    document.querySelector(line.elementId).textContent = `Erreur : ${e.message}`;
   }
 }
 
-function updateElementTime(elementId) {
-  const el = document.getElementById(elementId);
-  if (el) {
-    const now = new Date().toLocaleString();
-    el.textContent = `Dernière mise à jour : ${now}`;
-  }
-}
-
-function updateElementText(elementId, text) {
-  const el = document.getElementById(elementId);
-  if (el) {
-    el.innerHTML = text.replace(/\n/g, "<br>");
-  }
-}
-
-function updateGlobalDateTime() {
-  const el = document.getElementById("current-time");
-  if (el) {
-    const now = new Date();
-    el.textContent = `🕒 ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-  }
-}
-
-async function refreshAll() {
+async function fetchPrimInfo(line) {
+  const url = `${CORS_PROXY}https://prim.iledefrance-mobilites.fr/marketplace/general-message?LineRef=${line.lineRef}`;
   try {
-    updateGlobalDateTime();
-    await Promise.all([
-      updateStop("rer-joinville", STOP_IDS.rer_joinville, "STIF:Line::C01742:"),
-      updateStop("bus77-hippo", STOP_IDS.bus77_hippo, "STIF:Line::C01789:"),
-      updateStop("bus201-breuil", STOP_IDS.bus201_breuil, "STIF:Line::C01805:")
-    ]);
+    const data = await fetchWithRetry(url);
+    const infos = data.Siri?.ServiceDelivery?.GeneralMessageDelivery?.[0]?.InfoMessage || [];
+    const messages = infos.map(m => m?.Content?.Message?.[0]?.value).filter(Boolean).map(msg => `⚠️ ${msg}`).join("<br>");
+    document.querySelector(line.infoId).innerHTML = messages || "✅ Aucun problème signalé.";
   } catch (e) {
-    logError(`Erreur refreshAll: ${e.message}`);
+    console.error(e);
+    document.querySelector(line.infoId).textContent = `Erreur : ${e.message}`;
   }
 }
 
-refreshAll();
-setInterval(refreshAll, 5 * 60 * 1000);
+async function fetchVelib(stationId, elementId) {
+  setLoading(elementId);
+  const url = `${CORS_PROXY}https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json`;
+  try {
+    const data = await fetchWithRetry(url);
+    const station = data?.data?.stations?.find(s => String(s.station_id) === String(stationId));
+    if (station) {
+      const types = station.num_bikes_available_types || [];
+      let mec = 0, elec = 0;
+      types.forEach(typeObj => {
+        if ("mechanical" in typeObj) mec = typeObj.mechanical;
+        if ("ebike" in typeObj) elec = typeObj.ebike;
+      });
+      const html = `🚲 ${station.num_bikes_available} vélos : 🚴 ${mec} méc. ⚡ ${elec} élec. 🅿️ ${station.num_docks_available} bornes libres`;
+      document.querySelector(elementId).innerHTML = html;
+    } else {
+      document.querySelector(elementId).innerHTML = "⚠️ Station Vélib introuvable";
+    }
+    updateTimestamp(elementId);
+  } catch (e) {
+    console.error(e);
+    document.querySelector(elementId).textContent = `Erreur : ${e.message}`;
+  }
+}
+
+async function fetchWeather() {
+  const url = "https://api.open-meteo.com/v1/forecast?latitude=48.835&longitude=2.43&current=temperature_2m,weathercode&timezone=Europe%2FParis";
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
+    const data = await res.json();
+    const temp = data.current.temperature_2m;
+    const code = data.current.weathercode;
+    const desc = {
+      0:"Ciel clair",1:"Principalement clair",2:"Partiellement nuageux",3:"Couvert",45:"Brouillard",
+      51:"Bruine",61:"Pluie légère",80:"Averses",95:"Orages"
+    }[code] || "Inconnu";
+    const iconSrc = `img/${code}.png`;
+    document.querySelector("#meteo").innerHTML = `
+      <img src="${iconSrc}" alt="Météo" style="height:48px;vertical-align:middle;margin-right:8px;">
+      🌡 ${temp}°C, ${desc}
+    `;
+    updateTimestamp("#meteo");
+  } catch (e) {
+    console.error(e);
+    document.querySelector("#meteo").textContent = `Erreur : ${e.message}`;
+  }
+}
+
+async function fetchAndDisplayRSS(url, elementId) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
+    const text = await res.text();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, "application/xml");
+    const items = Array.from(xml.querySelectorAll("item")).slice(0, 5);
+    const titles = items.map(item => item.querySelector("title")?.textContent.trim()).filter(Boolean);
+    document.querySelector(elementId).textContent = "📰 " + titles.join(" | ");
+  } catch (e) {
+    console.error(e);
+    document.querySelector(elementId).textContent = `Erreur RSS : ${e.message}`;
+  }
+}
+
+function updateLines() { for (const line of LINES) fetchPrimStop(line); }
+function updatePerturbations() { for (const line of LINES) fetchPrimInfo(line); }
+function updateVelib() {
+  fetchVelib("1074333296", "#velib-vincennes");
+  fetchVelib("508042092", "#velib-breuil");
+}
+
+updateLines();
+updatePerturbations();
+updateVelib();
+fetchWeather();
+fetchAndDisplayRSS(`${CORS_PROXY}https://www.francetvinfo.fr/titres.rss`, "#rss-news");
+
+setInterval(updateLines, 2 * 60 * 1000);
+setInterval(updateVelib, 15 * 60 * 1000);
+setInterval(updatePerturbations, 30 * 60 * 1000);
+setInterval(fetchWeather, 15 * 60 * 1000);
+setInterval(() => fetchAndDisplayRSS(`${CORS_PROXY}https://www.francetvinfo.fr/titres.rss`, "#rss-news"), 60 * 60 * 1000);
