@@ -164,3 +164,19 @@ setInterval(updateVelib, 15 * 60 * 1000);
 setInterval(updatePerturbations, 30 * 60 * 1000);
 setInterval(fetchWeather, 15 * 60 * 1000);
 setInterval(() => fetchAndDisplayRSS(`${CORS_PROXY}https://www.francetvinfo.fr/titres.rss`, "#rss-news"), 60 * 60 * 1000);
+
+const blocks = document.querySelectorAll('.line-block');
+let current = 0;
+
+function showBlock(index) {
+  blocks.forEach((b, i) => {
+    b.classList.toggle('active', i === index);
+  });
+}
+
+// Lance le carrousel
+showBlock(current);
+setInterval(() => {
+  current = (current + 1) % blocks.length;
+  showBlock(current);
+}, 7000); // change de bloc toutes les 7 secondes
