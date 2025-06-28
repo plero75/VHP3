@@ -1,6 +1,8 @@
+const CORS_PROXY = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";
+
 async function fetchAndDisplay(url, containerId, updateId) {
   try {
-    const response = await fetch(url);
+    const response = await fetch(CORS_PROXY + encodeURIComponent(url));
     if (!response.ok) throw new Error(`HTTP error ${response.status}`);
     const data = await response.json();
 
@@ -44,8 +46,9 @@ async function fetchAndDisplay(url, containerId, updateId) {
 }
 
 async function fetchTrafficAlerts(lineRef, containerId) {
+  const url = `https://prim.iledefrance-mobilites.fr/marketplace/general-message?LineRef=${encodeURIComponent(lineRef)}`;
   try {
-    const response = await fetch(`/proxy/general-message?LineRef=${encodeURIComponent(lineRef)}`);
+    const response = await fetch(CORS_PROXY + encodeURIComponent(url));
     if (!response.ok) throw new Error(`HTTP error ${response.status}`);
     const data = await response.json();
 
@@ -126,9 +129,9 @@ async function fetchVelibDirect(url, containerId) {
 
 function refreshAll() {
   // Passages temps réel
-  fetchAndDisplay('/proxy/stop-monitoring?MonitoringRef=STIF:StopArea:SP:43135:', 'rer-a-passages', 'rer-a-update');
-  fetchAndDisplay('/proxy/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463641:', 'bus-77-passages', 'bus-77-update');
-  fetchAndDisplay('/proxy/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463644:', 'bus-201-passages', 'bus-201-update');
+  fetchAndDisplay('https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:43135:', 'rer-a-passages', 'rer-a-update');
+  fetchAndDisplay('https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463641:', 'bus-77-passages', 'bus-77-update');
+  fetchAndDisplay('https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463644:', 'bus-201-passages', 'bus-201-update');
 
   // Infos trafic
   fetchTrafficAlerts('STIF:Line::C01742:', 'rer-a-alerts');
