@@ -10,6 +10,43 @@ const STOP_IDS = {
   bus77_hippo: ["STIF:StopPoint:Q:463640:", "STIF:StopPoint:Q:463647:"],
   bus201_breuil: ["STIF:StopPoint:Q:463646:", "STIF:StopPoint:Q:463643:"],
 };
+async function fetchAndDisplayRSS(url, elementId) {
+  setLoading(elementId);
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
+    const text = await res.text();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, "application/xml");
+    const items = Array.from(xml.querySelectorAll("item")).slice(0, 10);
+    const titles = items.map(item => item.querySelector("title")?.textContent || "Sans titre");
+
+    if (!titles.length) {
+      document.querySelector(elementId).textContent = "⚠️ Aucun titre disponible.";
+      return;
+    }
+
+    let index = 0;
+    const newsEl = document.querySelector(elementId);
+
+    const showTitle = () => {
+      newsEl.classList.add("hidden");
+      setTimeout(() => {
+        newsEl.innerHTML = titles[index];
+        newsEl.classList.remove("hidden");
+        index = (index + 1) % titles.length;
+      }, 1000); // durée de l'effet fondu (1s)
+    };
+
+    showTitle();
+    setInterval(showTitle, 8000); // changer de titre toutes les 8 secondes
+
+    updateTimestamp(elementId);
+  } catch (e) {
+    console.error(e);
+    document.querySelector(elementId).textContent = `Erreur : ${e.message}`;
+  }
+}
 
 async function fetchWithTimeout(resource, options = {}, timeout = 8000, retries = 2) {
   let attempt = 0;
