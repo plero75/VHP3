@@ -144,7 +144,7 @@ function updateGlobalDateTime() {
 
 async function fetchVelib(stationId, elementIdPrefix) {
   updateElementTime(`${elementIdPrefix}-update`);
-  const url = "https://velib-metropole-opendata.smoove.pro/opendata/Velib_Metropole/station_status.json";
+  const url = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json";
   try {
     const res = await fetchWithTimeout(url);
     if (!res.ok) throw new Error(`Erreur Vélib ${res.status}`);
