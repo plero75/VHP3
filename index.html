@@ -11,56 +11,31 @@
 
     <div class="header">
       <div class="datetime" id="current-time">Chargement...</div>
-      <div class="weather" id="weather-content">🌤 Chargement météo...</div>
+      <div class="weather" id="meteo">🌤 Chargement météo...</div>
     </div>
 
-    <div class="section rer">
-      <div class="section-title">
-        <span class="line-icon rer-a">A</span>
-        <span class="line-name">RER A</span>
-      </div>
-      <div class="directions">
-        <div class="direction">
-          <h3>Vers Paris</h3>
-          <div class="times" id="rer-joinville-paris">Chargement...</div>
-        </div>
-        <div class="direction">
-          <h3>Vers Boissy</h3>
-          <div class="times" id="rer-joinville-boissy">Chargement...</div>
-        </div>
-      </div>
-      <div class="info">
-        <div class="status ok">✅ Dernier train prévu chaque sens</div>
-        <div class="status alert" id="rer-traffic">Chargement trafic...</div>
-      </div>
+    <div class="section" id="rer-section">
+      <div class="section-title"><span class="line-icon rer-a">A</span> RER A</div>
+      <div id="rer-a">Chargement horaires...</div>
+      <div id="info-rer-a" class="info">Chargement info trafic...</div>
     </div>
 
-    <div class="section bus">
-      <div class="section-title">
-        <span class="line-icon bus-77">77</span>
-        <span class="line-name">BUS 77</span>
-      </div>
-      <div class="direction">
-        <h3>Arrêt Hippodrome</h3>
-        <div class="times" id="bus77-times">Chargement...</div>
-      </div>
+    <div class="section" id="bus77-section">
+      <div class="section-title"><span class="line-icon bus-77">77</span> Bus 77</div>
+      <div id="bus-77">Chargement horaires...</div>
+      <div id="info-bus-77" class="info">Chargement info trafic...</div>
+    </div>
+
+    <div class="section" id="bus201-section">
+      <div class="section-title"><span class="line-icon bus-201">201</span> Bus 201</div>
+      <div id="bus-201">Chargement horaires...</div>
+      <div id="info-bus-201" class="info">Chargement info trafic...</div>
     </div>
 
     <div class="section velib">
-      <div class="section-title">🚲 VÉLIB</div>
-      <div class="velib-station">
-        <div class="station-name">Station Hippodrome</div>
-        <div class="station-status" id="velib-vincennes">Chargement...</div>
-      </div>
-      <div class="velib-station">
-        <div class="station-name">Station École du Breuil</div>
-        <div class="station-status" id="velib-breuil">Chargement...</div>
-      </div>
-    </div>
-
-    <div class="section traffic-global">
-      <h3>⚠️ Info Trafic Global</h3>
-      <div id="traffic-road-content">Chargement trafic routier...</div>
+      <div class="section-title">🚲 Vélib</div>
+      <div id="velib-vincennes">Chargement station Hippodrome...</div>
+      <div id="velib-breuil">Chargement station École du Breuil...</div>
     </div>
 
     <div class="footer">
@@ -72,6 +47,6 @@
     <div id="rss-news" class="news-ticker-content">Chargement des actualités...</div>
   </div>
 
-  <script src="ton-script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
