@@ -1,139 +1,78 @@
 html, body {
-  height: 100%;
   margin: 0;
   padding: 0;
-  font-family: sans-serif;
-  background: #f0f0f0;
+  font-family: 'Roboto', sans-serif;
+  background: #f4f6f8;
   color: #333;
-  overflow-y: auto;
+  min-height: 100%;
 }
 
 h1 {
-  font-size: clamp(2rem, 4vw, 3rem);
   text-align: center;
-  margin: 20px;
-}
-
-#alerts {
-  color: red;
-  font-weight: bold;
-  font-size: 1.2em;
-  margin: 10px;
-  text-align: center;
-}
-
-body {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  background: #004e92;
+  color: white;
   padding: 20px;
-  box-sizing: border-box;
+  margin: 0 0 30px;
+  font-size: clamp(1.8rem, 4vw, 3rem);
 }
 
 section {
   background: white;
-  border-radius: 8px;
-  padding: 15px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  flex: 1 1 100%;
-  min-width: 280px;
-  box-sizing: border-box;
-}
-
-h2 {
-  margin-top: 0;
-  font-size: clamp(1.2rem, 2.5vw, 1.8rem);
-  color: #00529b;
-}
-
-/* Grille responsive à partir de 900px */
-@media (min-width: 900px) {
-  body {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: space-between;
-  }
-  section {
-    flex: 1 1 calc(48% - 20px);
-    min-width: 400px;
-  }
-}
-
-/* Texte dans sections principales */
-#rer-a, #bus-77, #bus-201, #velib-vincennes, #velib-breuil, #meteo {
-  font-size: clamp(1rem, 2.5vw, 1.5rem);
-  line-height: 1.4;
-}
-
-#info-rer-a, #info-bus-77, #info-bus-201 {
-  margin-top: 10px;
-  font-size: 1.2em;
-  color: #c0392b;
-}
-
-/* Bandeau actualités */
-#rss-news {
+  border-radius: 10px;
+  margin: 10px auto;
+  max-width: 900px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
   overflow: hidden;
-  white-space: nowrap;
-  width: 100%;
-  box-sizing: border-box;
-  background: #00529b;
-  color: white;
-  padding: 10px 0;
-  border-radius: 5px;
 }
 
-#rss-news ul {
-  display: inline-block;
-  padding: 0;
+section h2 {
   margin: 0;
-  animation: scroll-left 45s linear infinite;
+  padding: 15px;
+  background: #004e92;
+  color: white;
+  font-size: clamp(1.2rem, 3vw, 2rem);
 }
 
-#rss-news li {
-  display: inline;
-  font-size: clamp(1rem, 2.5vw, 1.5rem);
-  margin-right: 50px;
+section > div, .fade-news {
+  padding: 20px;
+  font-size: clamp(1rem, 2.5vw, 1.4rem);
 }
 
-@keyframes scroll-left {
-  0% { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
+#alerts {
+  text-align: center;
+  font-weight: bold;
+  color: red;
+  margin: 15px;
 }
-async function fetchAndDisplayRSS(url, elementId) {
-  setLoading(elementId);
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
-    const text = await res.text();
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(text, "application/xml");
-    const items = Array.from(xml.querySelectorAll("item")).slice(0, 10);
-    const titles = items.map(item => item.querySelector("title")?.textContent || "Sans titre");
 
-    if (!titles.length) {
-      document.querySelector(elementId).textContent = "⚠️ Aucun titre disponible.";
-      return;
-    }
+#rss-news {
+  min-height: 2em;
+}
 
-    let index = 0;
-    const newsEl = document.querySelector(elementId);
+.fade-news {
+  text-align: center;
+  font-weight: bold;
+  color: #004e92;
+  opacity: 1;
+  transition: opacity 1s ease-in-out;
+}
 
-    const showTitle = () => {
-      newsEl.classList.add("hidden");
-      setTimeout(() => {
-        newsEl.innerHTML = titles[index];
-        newsEl.classList.remove("hidden");
-        index = (index + 1) % titles.length;
-      }, 1000); // durée de l'effet fondu (1s)
-    };
+.fade-news.hidden {
+  opacity: 0;
+}
 
-    showTitle();
-    setInterval(showTitle, 8000); // changer de titre toutes les 8 secondes
+ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
 
-    updateTimestamp(elementId);
-  } catch (e) {
-    console.error(e);
-    document.querySelector(elementId).textContent = `Erreur : ${e.message}`;
-  }
+li {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #ddd;
+}
+
+li:last-child {
+  border-bottom: none;
 }
