@@ -180,3 +180,27 @@ setInterval(() => {
   current = (current + 1) % blocks.length;
   showBlock(current);
 }, 7000); // change de bloc toutes les 7 secondes
+
+const blocks = document.querySelectorAll('.line-block');
+const indicatorsContainer = document.getElementById('carousel-indicators');
+let current = 0;
+
+// Crée les indicateurs
+blocks.forEach((_, i) => {
+  const dot = document.createElement('span');
+  dot.classList.add('dot');
+  indicatorsContainer.appendChild(dot);
+});
+const dots = document.querySelectorAll('.carousel-indicators .dot');
+
+function showBlock(index) {
+  blocks.forEach((b, i) => b.classList.toggle('active', i === index));
+  dots.forEach((d, i) => d.classList.toggle('active', i === index));
+}
+
+// Lance le carrousel
+showBlock(current);
+setInterval(() => {
+  current = (current + 1) % blocks.length;
+  showBlock(current);
+}, 7000);
