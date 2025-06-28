@@ -2,7 +2,7 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  overflow: hidden; /* pas de scroll global */
+  overflow: hidden;
   font-family: sans-serif;
   background: #e6e8eb;
   color: #333;
@@ -17,10 +17,10 @@ header, footer {
 
 main {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 2 colonnes */
-  grid-template-rows: repeat(4, 1fr);    /* 4 lignes */
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(4, 1fr);
   gap: 0.5rem;
-  height: calc(100vh - 80px); /* moins header/footer */
+  height: calc(100vh - 80px);
   padding: 0.5rem;
   box-sizing: border-box;
 }
@@ -30,11 +30,11 @@ main {
   border-radius: 12px;
   padding: 0.5rem;
   height: 100%;
-  overflow: hidden; /* pas de scroll interne */
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  font-size: clamp(0.8rem, 1.2vw, 1.4rem); /* adaptatif */
+  font-size: clamp(0.8rem, 1.2vw, 1.4rem);
 }
 
 .block h2 {
@@ -42,14 +42,6 @@ main {
   margin: 0 0 0.2rem;
   border-bottom: 2px solid #ddd;
   padding-bottom: 0.2rem;
-  display: flex;
-  align-items: center;
-}
-
-.block h2::before {
-  content: attr(data-icon);
-  font-size: 1.5em;
-  margin-right: 0.3em;
 }
 
 .passage, .alert, .stops, .update-time, .block p {
@@ -60,6 +52,11 @@ main {
   overflow: hidden;
 }
 
-.alert { color: #b00020; font-weight: 600; }
+.alert {
+  color: #b00020;
+  font-weight: 600;
+}
 
-footer { font-size: 0.8rem; }
+footer {
+  font-size: 0.8rem;
+}
