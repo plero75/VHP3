@@ -11,6 +11,12 @@ const STOP_IDS = {
   bus201_breuil: ["STIF:StopPoint:Q:463646:", "STIF:StopPoint:Q:463643:"],
 };
 
+function logError(msg) {
+  const log = document.getElementById("debug-log");
+  if (log) log.textContent = msg;
+  console.error(msg);
+}
+
 async function fetchWithTimeout(resource, options = {}, timeout = 8000, retries = 2) {
   let attempt = 0;
   while (attempt <= retries) {
@@ -23,15 +29,12 @@ async function fetchWithTimeout(resource, options = {}, timeout = 8000, retries 
     } catch (e) {
       clearTimeout(id);
       if (e.name === 'AbortError') {
-        console.warn(`Tentative ${attempt + 1} échouée (AbortError)`);
+        logError(`Tentative ${attempt + 1} échouée (Timeout)`);
         if (attempt < retries) {
           attempt++;
-          console.info(`Nouvelle tentative (${attempt + 1}/${retries + 1})...`);
           continue;
         } else {
-          const abortError = new Error('La requête a échoué après plusieurs tentatives (AbortError)');
-          abortError.name = 'AbortError';
-          throw abortError;
+          throw new Error('Requête échouée après plusieurs tentatives (Timeout)');
         }
       }
       throw e;
@@ -59,13 +62,11 @@ async function processTrips(stopIds) {
   const results = await Promise.all(stopIds.map(id => fetchRealTime(id)));
   const trips = results.flatMap(rt => rt?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || []);
   if (trips.length === 0) return "❌ Aucun passage ou service terminé.";
-
   trips.sort((a, b) => {
     const aTime = new Date(a.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime);
     const bTime = new Date(b.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime);
     return aTime - bTime;
   });
-
   return trips.slice(0, 4).map(t => formatTrip(t)).join("\n\n");
 }
 
@@ -123,7 +124,7 @@ async function updateStop(elementIdPrefix, stopIds, lineId) {
     const finalText = tripsText + "\n\n🚦 Info trafic :\n" + trafficText;
     updateElementText(elementIdPrefix, finalText);
   } catch (e) {
-    console.warn(`Erreur updateStop ${elementIdPrefix}:`, e);
+    logError(`Erreur updateStop ${elementIdPrefix}: ${e.message}`);
     updateElementText(elementIdPrefix, "⚠️ Données indisponibles");
   }
 }
@@ -151,87 +152,18 @@ function updateGlobalDateTime() {
   }
 }
 
-async function fetchVelib(stationId, elementIdPrefix) {
-  updateElementTime(`${elementIdPrefix}-update`);
-  const url = `${API_PROXY_URL}https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json`;
-  try {
-    const res = await fetchWithTimeout(url);
-    if (!res.ok) throw new Error(`Erreur Vélib ${res.status}`);
-    const data = await res.json();
-    const station = data.data.stations.find(s => String(s.station_id) === String(stationId));
-    if (!station) throw new Error("Station Vélib introuvable");
-    updateElementText(elementIdPrefix, `🚲 ${station.num_bikes_available} vélos - 🅿️ ${station.num_docks_available} bornes`);
-  } catch (e) {
-    console.warn("Erreur Vélib:", e);
-    updateElementText(elementIdPrefix, "⚠️ Données Vélib indisponibles");
-  }
-}
-
-function getWeatherDescription(code) {
-  const desc = {
-    0: "ciel dégagé", 1: "peu nuageux", 2: "partiellement nuageux", 3: "couvert",
-    45: "brouillard", 48: "brouillard givrant", 51: "bruine légère", 53: "bruine modérée",
-    55: "bruine dense", 61: "pluie faible", 63: "pluie modérée", 65: "pluie forte",
-    80: "averses légères", 81: "averses modérées", 82: "averses fortes", 95: "orage"
-  };
-  return desc[code] || "conditions inconnues";
-}
-
-async function fetchWeather() {
-  updateElementTime("weather-update");
-  const url = "https://api.open-meteo.com/v1/forecast?latitude=48.835&longitude=2.430&current=temperature_2m,weathercode&timezone=Europe%2FParis";
-  try {
-    const res = await fetchWithTimeout(url);
-    if (!res.ok) throw new Error(`Erreur météo ${res.status}`);
-    const data = await res.json();
-    const temp = data.current.temperature_2m;
-    const code = data.current.weathercode;
-    const desc = getWeatherDescription(code);
-    const iconSrc = `img/${code}.png`;
-    const iconHtml = `<img src="${iconSrc}" alt="${desc}" style="height:24px;vertical-align:middle;" onerror="this.src='img/default.png';">`;
-    updateElementText("weather-content", `${iconHtml} 🌡 ${temp}°C, ${desc}`);
-  } catch (e) {
-    console.warn("Erreur météo:", e);
-    updateElementText("weather-content", "⚠️ Météo indisponible");
-  }
-}
-
-async function fetchTrafficRoad() {
-  updateElementTime("traffic-road-update");
-  const url = "https://data.opendatasoft.com/api/records/1.0/search/?dataset=etat-de-circulation-en-temps-reel-sur-le-reseau-national-routier-non-concede&q=&rows=10&facet=route";
-  try {
-    const res = await fetchWithTimeout(url);
-    if (!res.ok) throw new Error(`Erreur trafic routier ${res.status}`);
-    const data = await res.json();
-    const infos = data.records.map(r => `🛣 ${r.fields.route} : ${r.fields.etat_circulation}`).join("<br>") || "✅ Trafic normal";
-    updateElementText("traffic-road-content", infos);
-  } catch (e) {
-    console.warn("Erreur trafic routier:", e);
-    updateElementText("traffic-road-content", "⚠️ Trafic routier indisponible");
-  }
-}
-
 async function refreshAll() {
   try {
     updateGlobalDateTime();
     await Promise.all([
       updateStop("rer-joinville", STOP_IDS.rer_joinville, "STIF:Line::C01742:"),
       updateStop("bus77-hippo", STOP_IDS.bus77_hippo, "STIF:Line::C01789:"),
-      updateStop("bus201-breuil", STOP_IDS.bus201_breuil, "STIF:Line::C01805:"),
-      fetchVelib(VELIB_IDS.vincennes, "velib-vincennes"),
-      fetchVelib(VELIB_IDS.breuil, "velib-breuil"),
-      fetchWeather(),
-      fetchTrafficRoad()
+      updateStop("bus201-breuil", STOP_IDS.bus201_breuil, "STIF:Line::C01805:")
     ]);
   } catch (e) {
-    console.error("Erreur refreshAll:", e);
+    logError(`Erreur refreshAll: ${e.message}`);
   }
 }
 
 refreshAll();
 setInterval(refreshAll, 5 * 60 * 1000);
-
-fetchAndDisplayRSS("https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https://www.francetvinfo.fr/titres.rss", "#rss-news");
-setInterval(() => {
-  fetchAndDisplayRSS("https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https://www.francetvinfo.fr/titres.rss", "#rss-news");
-}, 60 * 60 * 1000);
