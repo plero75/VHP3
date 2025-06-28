@@ -38,7 +38,7 @@ async function fetchPrimStop(line) {
       return;
     }
     let html = "<ul>";
-    visits.slice(0, 4).forEach((v) => {
+    visits.slice(0, 2).forEach((v) => { // max 2 passages pour compacité
       const mvj = v.MonitoredVehicleJourney, mc = mvj?.MonitoredCall;
       const expectedRaw = mc?.ExpectedDepartureTime;
       const expectedDate = expectedRaw ? new Date(expectedRaw) : null;
@@ -139,7 +139,7 @@ function updateVelib() {
 }
 
 // GTFS info
-fetch("public/gtfs-info.json")
+fetch("gtfs-info.json")
   .then(res => res.json())
   .then(data => {
     document.querySelector("#first-last").textContent = `🚆 Premier départ : ${data.first} — Dernier départ : ${data.last}`;
@@ -165,22 +165,7 @@ setInterval(updatePerturbations, 30 * 60 * 1000);
 setInterval(fetchWeather, 15 * 60 * 1000);
 setInterval(() => fetchAndDisplayRSS(`${CORS_PROXY}https://www.francetvinfo.fr/titres.rss`, "#rss-news"), 60 * 60 * 1000);
 
-const blocks = document.querySelectorAll('.line-block');
-let current = 0;
-
-function showBlock(index) {
-  blocks.forEach((b, i) => {
-    b.classList.toggle('active', i === index);
-  });
-}
-
-// Lance le carrousel
-showBlock(current);
-setInterval(() => {
-  current = (current + 1) % blocks.length;
-  showBlock(current);
-}, 7000); // change de bloc toutes les 7 secondes
-
+// Carrousel automatique avec indicateurs
 const blocks = document.querySelectorAll('.line-block');
 const indicatorsContainer = document.getElementById('carousel-indicators');
 let current = 0;
@@ -198,9 +183,17 @@ function showBlock(index) {
   dots.forEach((d, i) => d.classList.toggle('active', i === index));
 }
 
-// Lance le carrousel
+// Affiche le premier bloc et lance le carrousel
 showBlock(current);
 setInterval(() => {
   current = (current + 1) % blocks.length;
   showBlock(current);
 }, 7000);
+
+// Navigation manuelle avec clic sur les points
+dots.forEach((dot, i) => {
+  dot.addEventListener('click', () => {
+    current = i;
+    showBlock(current);
+  });
+});
