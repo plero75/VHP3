@@ -10,35 +10,72 @@ async function fetchAndDisplay(url, containerId, updateId) {
     container.innerHTML = '';
 
     const visits = data.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || [];
-    if (visits.length === 0) {
-      container.innerHTML = '<p>🛑 Aucun passage prévu</p>';
-    } else {
-      visits.slice(0, 4).forEach(v => {
-        const mvj = v.MonitoredVehicleJourney;
-        const aimed = new Date(mvj.MonitoredCall.AimedDepartureTime);
-        const expected = new Date(mvj.MonitoredCall.ExpectedDepartureTime);
-        const delay = Math.round((expected - aimed) / 60000);
-        const now = new Date();
-        const timeLeft = Math.round((expected - now) / 60000);
+    const now = new Date();
 
-        let status = '';
-        if (mvj.MonitoredCall.DepartureStatus === 'cancelled') {
-          status = '❌ Supprimé';
-        } else if (timeLeft <= 1) {
-          status = '🟢 Imminent';
-        } else if (delay > 0) {
-          status = `⚠️ +${delay} min`;
-        }
+    let lineKey;
+    if (containerId.includes('rer-a')) lineKey = 'rer-a';
+    else if (containerId.includes('bus-77')) lineKey = 'bus-77';
+    else if (containerId.includes('bus-201')) lineKey = 'bus-201';
 
-        container.innerHTML += `
-          <div class="passage">
-            <strong>🕐 ${expected.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</strong>
-            <span> (dans ${timeLeft} min) ${status}</span>
-          </div>
-        `;
-      });
+    const lastParts = firstLastTimes[lineKey].last.split(':');
+    const lastPassageToday = new Date(now);
+    lastPassageToday.setHours(parseInt(lastParts[0]), parseInt(lastParts[1]), 0, 0);
+    if (parseInt(lastParts[0]) < 5) lastPassageToday.setDate(now.getDate() + 1);
+
+    // Séparer les passages par direction
+    const directions = {};
+    visits.forEach(v => {
+      const mvj = v.MonitoredVehicleJourney;
+      const dirName = mvj.DirectionName?.[0]?.value || "Sens inconnu";
+      if (!directions[dirName]) directions[dirName] = [];
+      directions[dirName].push(v);
+    });
+
+    container.innerHTML = '';
+    for (const [dir, dirVisits] of Object.entries(directions)) {
+      container.innerHTML += `<h3>${dir}</h3>`;
+      const filtered = dirVisits
+        .filter(v => {
+          const expected = new Date(v.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime);
+          return expected <= lastPassageToday;
+        })
+        .slice(0, 4);
+
+      if (filtered.length === 0) {
+        container.innerHTML += '<p>🛑 Aucun passage prévu (service terminé)</p>';
+      } else {
+        filtered.forEach(v => {
+          const mvj = v.MonitoredVehicleJourney;
+          const aimed = new Date(mvj.MonitoredCall.AimedDepartureTime);
+          const expected = new Date(mvj.MonitoredCall.ExpectedDepartureTime);
+          const delay = Math.round((expected - aimed) / 60000);
+          const timeLeft = Math.round((expected - now) / 60000);
+
+          let status = '';
+          if (mvj.MonitoredCall.DepartureStatus === 'cancelled') {
+            status = '❌ Supprimé';
+          } else if (timeLeft <= 1) {
+            status = '🟢 Imminent';
+          } else if (delay > 0) {
+            status = `⚠️ +${delay} min`;
+          }
+
+          let lastService = '';
+          if (Math.abs(expected - lastPassageToday) <= 60000) {
+            lastService = ' 🔴 Dernier service du jour';
+          }
+
+          container.innerHTML += `
+            <div class="passage">
+              <strong>🕐 ${expected.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</strong>
+              <span> (dans ${timeLeft} min) ${status}${lastService}</span>
+            </div>
+          `;
+        });
+      }
     }
-    document.getElementById(updateId).textContent = `Mise à jour : ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+
+    document.getElementById(updateId).textContent = `Mise à jour : ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
   } catch (error) {
     console.error(error);
     document.getElementById(containerId).innerHTML = '<p>❌ Erreur de chargement</p>';
@@ -56,17 +93,14 @@ async function fetchTrafficAlerts(lineRef, containerId) {
     container.innerHTML = '';
 
     const messages = data.Siri?.ServiceDelivery?.GeneralMessageDelivery?.[0]?.InfoMessage || [];
-    if (messages.length === 0) {
+    messages.forEach(m => {
+      const text = m.InfoMessageText?.[0]?.MessageText?.trim();
+      if (text) {
+        container.innerHTML += `<div class="alert"><p>⚠️ ${text}</p></div>`;
+      }
+    });
+    if (container.innerHTML === '') {
       container.innerHTML = '<p>✅ Aucun incident signalé.</p>';
-    } else {
-      messages.forEach(m => {
-        container.innerHTML += `
-          <div class="alert">
-            <p>⚠️ <strong>${m.InfoMessageIdentifier?.value || 'Message'}</strong></p>
-            <p>${m.InfoChannelRef?.value || 'Canal inconnu'}: ${m.InfoMessageText?.[0]?.MessageText || 'Message indisponible'}</p>
-          </div>
-        `;
-      });
     }
   } catch (error) {
     console.error(error);
@@ -128,27 +162,22 @@ async function fetchVelibDirect(url, containerId) {
 }
 
 function refreshAll() {
-  // Passages temps réel
   fetchAndDisplay('https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:43135:', 'rer-a-passages', 'rer-a-update');
   fetchAndDisplay('https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463641:', 'bus-77-passages', 'bus-77-update');
   fetchAndDisplay('https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463644:', 'bus-201-passages', 'bus-201-update');
 
-  // Infos trafic
   fetchTrafficAlerts('STIF:Line::C01742:', 'rer-a-alerts');
   fetchTrafficAlerts('STIF:Line::C00777:', 'bus-77-alerts');
   fetchTrafficAlerts('STIF:Line::C00201:', 'bus-201-alerts');
 
-  // Premier/dernier passage
   displayFirstLast('rer-a-firstlast', 'rer-a');
   displayFirstLast('bus-77-firstlast', 'bus-77');
   displayFirstLast('bus-201-firstlast', 'bus-201');
 
-  // Liste des arrêts
   displayStops('rer-a-stops', 'rer-a');
   displayStops('bus-77-stops', 'bus-77');
   displayStops('bus-201-stops', 'bus-201');
 
-  // Vélib'
   fetchVelibDirect(
     'https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12163)&timezone=Europe%2FBerlin',
     'velib-vincennes-data'
@@ -159,5 +188,4 @@ function refreshAll() {
   );
 }
 
-refreshAll();
-setInterval(refreshAll, 60000);
+refreshA
