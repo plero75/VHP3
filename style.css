@@ -1,47 +1,56 @@
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  overflow: hidden; /* pas de scroll global */
-  font-family: sans-serif;
-  background: #f0f0f0;
-}
-
-header, footer {
-  background: #333;
-  color: white;
-  text-align: center;
-  padding: 0.5rem;
-}
-
-main {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  grid-auto-rows: 1fr;
-  gap: 0.5rem;
-  height: calc(100vh - 80px); /* ajuste selon la hauteur header/footer */
-  padding: 0.5rem;
-  box-sizing: border-box;
+body {
+  background: #e6e8eb;
+  color: #333;
 }
 
 .block {
   background: white;
-  border-radius: 8px;
-  padding: 0.5rem;
-  overflow-y: auto; /* scroll interne si trop de contenu */
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  overflow-y: auto;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .block h2, .block h3 {
-  margin: 0.25rem 0;
-  font-size: 1rem;
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 0.25rem;
 }
 
-.passage, .alert, .stops, .update-time {
-  font-size: 0.9rem;
+.block p, .passage, .alert, .stops, .update-time {
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.passage strong {
+  font-size: 1.1rem;
+  color: #000;
+}
+
+.alert {
+  color: #b00020;
+  font-weight: 600;
+}
+
+#weather, #traffic {
+  background: #f0f7ff;
+}
+
+#velib-vincennes, #velib-breuil {
+  background: #f3fdf4;
+}
+
+#rer-a, #bus-77, #bus-201 {
+  background: #f9f9f9;
 }
 
 @media (max-width: 600px) {
-  .block h2, .block h3 { font-size: 0.8rem; }
-  .passage, .alert, .stops, .update-time { font-size: 0.75rem; }
+  .block h2, .block h3 { font-size: 1rem; }
+  .passage, .alert, .stops, .update-time { font-size: 0.9rem; }
 }
