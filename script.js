@@ -141,7 +141,7 @@ fetchAndDisplayRSS("https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https
  
 async function fetchVelib(stationId, elementId) {
   setLoading(elementId);
-  const url = "https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json";
+  const url = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json";
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
