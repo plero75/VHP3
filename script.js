@@ -130,11 +130,11 @@ async function fetchAndDisplayRSS(url, elementId) {
 }
 
 // Premier chargement RSS Franceinfo
-fetchAndDisplayRSS("https://www.francetvinfo.fr/titres.rss", "#rss-news");
+fetchAndDisplayRSS("https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https://www.francetvinfo.fr/titres.rss", "#rss-news");
 
 // Rafraîchissement toutes les heures
 setInterval(() => {
-  fetchAndDisplayRSS("https://www.francetvinfo.fr/titres.rss", "#rss-news");
+fetchAndDisplayRSS("https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https://www.francetvinfo.fr/titres.rss", "#rss-news");
 }, 60 * 60 * 1000);
 
 // Vélib'
