@@ -1,124 +1,77 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dashboard Transport</title>
-  <style>
-    body.light-mode { background: #f0f0f0; color: #333; }
-    body.light-mode .bloc { background: white; }
-    body.dark-mode { background: #121212; color: #f0f0f0; }
-    body.dark-mode .bloc { background: #1e1e1e; color: #f0f0f0; }
-    body { font-family: Arial, sans-serif; margin: 0; padding: 15px; transition: background 0.5s, color 0.5s; }
-    h1 { font-size: 5vw; text-align: center; margin-bottom: 10px; }
-    .bloc { border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); word-wrap: break-word; }
-    h2 { font-size: 4vw; margin: 0 0 10px; }
-    .update-time { font-size: 3vw; color: #888; margin-top: 8px; }
-    #toggle-theme { font-size: 1rem; padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 10px; }
-    body.dark-mode #toggle-theme { background: #444; color: #f0f0f0; }
-    body.light-mode #toggle-theme { background: #0077cc; color: white; }
-    #debug-log { color: red; font-size: 12px; margin-bottom: 10px; text-align: center; }
-    @media (min-width: 600px) { body { padding: 30px; } h1 { font-size: 2rem; } h2 { font-size: 1.5rem; } .update-time { font-size: 0.9rem; } }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard Transport Style Panneau</title>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <h1>📍 Dashboard Transport & Infos Temps Réel</h1>
-  <button id="toggle-theme">🌙 Basculer Jour/Nuit</button>
-  <div id="debug-log"></div>
-  <div id="current-time" class="bloc">🕒 Chargement...</div>
+  <div class="dashboard">
 
-  <div class="bloc">
-    <h2>🚆 RER A – Joinville-le-Pont</h2>
-    <div id="rer-joinville">Chargement...</div>
-    <div id="rer-joinville-update" class="update-time"></div>
+    <div class="header">
+      <div class="datetime" id="current-time">Chargement...</div>
+      <div class="weather" id="weather-content">🌤 Chargement météo...</div>
+    </div>
+
+    <div class="section rer">
+      <div class="section-title">
+        <span class="line-icon rer-a">A</span>
+        <span class="line-name">RER A</span>
+      </div>
+      <div class="directions">
+        <div class="direction">
+          <h3>Vers Paris</h3>
+          <div class="times" id="rer-joinville-paris">Chargement...</div>
+        </div>
+        <div class="direction">
+          <h3>Vers Boissy</h3>
+          <div class="times" id="rer-joinville-boissy">Chargement...</div>
+        </div>
+      </div>
+      <div class="info">
+        <div class="status ok">✅ Dernier train prévu chaque sens</div>
+        <div class="status alert" id="rer-traffic">Chargement trafic...</div>
+      </div>
+    </div>
+
+    <div class="section bus">
+      <div class="section-title">
+        <span class="line-icon bus-77">77</span>
+        <span class="line-name">BUS 77</span>
+      </div>
+      <div class="direction">
+        <h3>Arrêt Hippodrome</h3>
+        <div class="times" id="bus77-times">Chargement...</div>
+      </div>
+    </div>
+
+    <div class="section velib">
+      <div class="section-title">🚲 VÉLIB</div>
+      <div class="velib-station">
+        <div class="station-name">Station Hippodrome</div>
+        <div class="station-status" id="velib-vincennes">Chargement...</div>
+      </div>
+      <div class="velib-station">
+        <div class="station-name">Station École du Breuil</div>
+        <div class="station-status" id="velib-breuil">Chargement...</div>
+      </div>
+    </div>
+
+    <div class="section traffic-global">
+      <h3>⚠️ Info Trafic Global</h3>
+      <div id="traffic-road-content">Chargement trafic routier...</div>
+    </div>
+
+    <div class="footer">
+      Dernière mise à jour : <span id="last-update">Chargement...</span>
+    </div>
   </div>
 
-  <div class="bloc">
-    <h2>🚌 Bus 77 – Hippodrome</h2>
-    <div id="bus77-hippo">Chargement...</div>
-    <div id="bus77-hippo-update" class="update-time"></div>
+  <div class="news-ticker">
+    <div id="rss-news" class="news-ticker-content">Chargement des actualités...</div>
   </div>
 
-  <div class="bloc">
-    <h2>🚌 Bus 201 – École du Breuil</h2>
-    <div id="bus201-breuil">Chargement...</div>
-    <div id="bus201-breuil-update" class="update-time"></div>
-  </div>
-
-  <script>
-    // Thème auto + bouton bascule
-    function applyTheme(theme) {
-      document.body.classList.remove("light-mode", "dark-mode");
-      document.body.classList.add(theme + "-mode");
-      localStorage.setItem("theme", theme);
-    }
-    function autoDetectTheme() {
-      const hour = new Date().getHours();
-      return (hour >= 20 || hour < 7) ? "dark" : "light";
-    }
-    const savedTheme = localStorage.getItem("theme");
-    applyTheme(savedTheme || autoDetectTheme());
-    document.getElementById("toggle-theme").addEventListener("click", () => {
-      const current = document.body.classList.contains("light-mode") ? "light" : "dark";
-      applyTheme(current === "light" ? "dark" : "light");
-    });
-
-    // Logger d'erreurs
-    function logError(msg) {
-      const log = document.getElementById("debug-log");
-      if (log) log.textContent = msg;
-      console.error(msg);
-    }
-
-    // Reste de ton script (seulement les appels et fonctions de base pour exemple) :
-    async function fetchRealTime(stopAreaId) {
-      try {
-        const url = `https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=${stopAreaId}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`Erreur API ${res.status}`);
-        const data = await res.json();
-        return data?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || [];
-      } catch (e) {
-        logError(`Erreur fetchRealTime : ${e.message}`);
-        return [];
-      }
-    }
-
-    async function updateStop(elementId, stopIds) {
-      try {
-        let tripsText = "";
-        for (const stopId of stopIds) {
-          const trips = await fetchRealTime(stopId);
-          tripsText += trips.length ? trips.map(t => t.MonitoredVehicleJourney?.MonitoredCall?.ExpectedDepartureTime).join("<br>") : "❌ Aucun passage.<br>";
-        }
-        document.getElementById(elementId).innerHTML = tripsText;
-      } catch (e) {
-        logError(`Erreur updateStop : ${e.message}`);
-      }
-    }
-
-    function updateGlobalDateTime() {
-      const el = document.getElementById("current-time");
-      if (el) {
-        const now = new Date();
-        el.textContent = `🕒 ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-      }
-    }
-
-    async function refreshAll() {
-      try {
-        updateGlobalDateTime();
-        await Promise.all([
-          updateStop("rer-joinville", ["STIF:StopPoint:Q:39406:"]),
-          updateStop("bus77-hippo", ["STIF:StopPoint:Q:463640:", "STIF:StopPoint:Q:463647:"]),
-          updateStop("bus201-breuil", ["STIF:StopPoint:Q:463646:", "STIF:StopPoint:Q:463643:"])
-        ]);
-      } catch (e) {
-        logError(`Erreur refreshAll : ${e.message}`);
-      }
-    }
-    refreshAll();
-    setInterval(refreshAll, 5 * 60 * 1000);
-  </script>
+  <script src="ton-script.js"></script>
 </body>
 </html>
