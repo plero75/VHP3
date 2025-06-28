@@ -186,7 +186,7 @@ async function fetchVelib(stationId, elementIdPrefix) {
     const res = await fetchWithTimeout(url);
     if (!res.ok) throw new Error(`Erreur Vélib ${res.status}`);
     const data = await res.json();
-    const station = data.data.stations.find(s => s.station_id === stationId);
+const station = data.data.stations.find(s => String(s.station_id) === String(stationId));
     if (!station) throw new Error("Station Vélib introuvable");
     updateElementText(elementIdPrefix, `🚲 ${station.num_bikes_available} vélos - 🅿️ ${station.num_docks_available} bornes`);
   } catch (e) {
@@ -235,6 +235,13 @@ async function refreshAll() {
       updateStop("bus201-breuil", STOP_IDS.bus201_breuil, "STIF:Line::C01805:"),
       fetchVelib(VELIB_IDS.vincennes, "velib-vincennes"),
       fetchVelib(VELIB_IDS.breuil, "velib-breuil"),
+      // Premier chargement RSS Franceinfo
+fetchAndDisplayRSS("https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https://www.francetvinfo.fr/titres.rss", "#rss-news");
+
+// Rafraîchissement toutes les heures
+setInterval(() => {
+fetchAndDisplayRSS("https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https://www.francetvinfo.fr/titres.rss", "#rss-news");
+}, 60 * 60 * 1000);
       fetchWeather(),
       fetchTrafficRoad()
     ]);
