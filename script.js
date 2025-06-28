@@ -62,8 +62,8 @@ async function fetchTrafficAlerts(lineRef, containerId) {
       messages.forEach(m => {
         container.innerHTML += `
           <div class="alert">
-            <p>⚠️ <strong>${m.InfoMessageIdentifier}</strong></p>
-            <p>${m.InfoChannelRef}: ${m.InfoMessageText?.[0]?.MessageText || 'Message indisponible'}</p>
+            <p>⚠️ <strong>${m.InfoMessageIdentifier?.value || 'Message'}</strong></p>
+            <p>${m.InfoChannelRef?.value || 'Canal inconnu'}: ${m.InfoMessageText?.[0]?.MessageText || 'Message indisponible'}</p>
           </div>
         `;
       });
