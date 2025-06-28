@@ -9,7 +9,7 @@ body {
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
-  padding-bottom: 60px; /* espace pour ticker en bas */
+  padding-bottom: 60px;
 }
 
 .header {
@@ -25,6 +25,13 @@ body {
   padding: 20px;
   border-radius: 8px;
   margin-bottom: 20px;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 0.8s ease forwards;
+}
+
+@keyframes fadeInUp {
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .section-title {
@@ -49,58 +56,28 @@ body {
 
 .rer-a { background: red; color: white; }
 .bus-77 { background: #0a74da; color: white; }
+.bus-201 { background: #00b140; color: white; }
 
-.directions, .direction {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
+.info, .times { font-size: 1.2rem; }
+
+.updated-flash { animation: flashUpdate 1s; }
+
+@keyframes flashUpdate {
+  0% { background-color: rgba(255,255,0,0.4); }
+  100% { background-color: transparent; }
 }
 
-.direction {
-  flex: 1 1 45%;
-  margin-bottom: 10px;
-}
+.imminent { animation: pulse 1s infinite alternate; }
 
-.direction h3 {
-  font-size: 1.2rem;
-  margin-bottom: 5px;
-}
-
-.times {
-  font-size: 2rem;
-  font-weight: bold;
-}
-
-.info {
-  margin-top: 10px;
-}
-
-.status {
-  margin-top: 5px;
-  font-size: 1rem;
-}
-
-.status.ok { color: #00FF00; }
-.status.alert { color: #FF4136; }
-
-.velib-station {
-  display: flex;
-  justify-content: space-between;
-  font-size: 1.2rem;
-  margin-bottom: 8px;
+@keyframes pulse {
+  from { color: #f00; transform: scale(1); }
+  to { color: #ff8080; transform: scale(1.1); }
 }
 
 .footer {
   text-align: center;
   font-size: 1rem;
   margin-top: 20px;
-}
-
-.traffic-global {
-  background: #FF851B;
-  color: black;
-  padding: 15px;
-  border-radius: 8px;
 }
 
 .news-ticker {
@@ -122,7 +99,7 @@ body {
 .news-ticker-content {
   display: inline-block;
   padding-left: 10px;
-  animation: ticker-scroll 30s linear infinite;
+  animation: ticker-scroll 60s linear infinite;
   font-size: 1.2rem;
 }
 
