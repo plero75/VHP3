@@ -188,4 +188,5 @@ function refreshAll() {
   );
 }
 
-refreshA
+refreshAll();
+setInterval(refreshAll, 60000);
