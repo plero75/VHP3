@@ -10,43 +10,6 @@ const STOP_IDS = {
   bus77_hippo: ["STIF:StopPoint:Q:463640:", "STIF:StopPoint:Q:463647:"],
   bus201_breuil: ["STIF:StopPoint:Q:463646:", "STIF:StopPoint:Q:463643:"],
 };
-async function fetchAndDisplayRSS(url, elementId) {
-  setLoading(elementId);
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
-    const text = await res.text();
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(text, "application/xml");
-    const items = Array.from(xml.querySelectorAll("item")).slice(0, 10);
-    const titles = items.map(item => item.querySelector("title")?.textContent || "Sans titre");
-
-    if (!titles.length) {
-      document.querySelector(elementId).textContent = "⚠️ Aucun titre disponible.";
-      return;
-    }
-
-    let index = 0;
-    const newsEl = document.querySelector(elementId);
-
-    const showTitle = () => {
-      newsEl.classList.add("hidden");
-      setTimeout(() => {
-        newsEl.innerHTML = titles[index];
-        newsEl.classList.remove("hidden");
-        index = (index + 1) % titles.length;
-      }, 1000); // durée de l'effet fondu (1s)
-    };
-
-    showTitle();
-    setInterval(showTitle, 8000); // changer de titre toutes les 8 secondes
-
-    updateTimestamp(elementId);
-  } catch (e) {
-    console.error(e);
-    document.querySelector(elementId).textContent = `Erreur : ${e.message}`;
-  }
-}
 
 async function fetchWithTimeout(resource, options = {}, timeout = 8000, retries = 2) {
   let attempt = 0;
@@ -95,12 +58,15 @@ async function fetchRealTime(stopAreaId) {
 async function processTrips(stopIds) {
   const results = await Promise.all(stopIds.map(id => fetchRealTime(id)));
   const trips = results.flatMap(rt => rt?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || []);
+  if (trips.length === 0) return "❌ Aucun passage ou service terminé.";
+
   trips.sort((a, b) => {
     const aTime = new Date(a.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime);
     const bTime = new Date(b.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime);
     return aTime - bTime;
   });
-  return trips.slice(0, 4).map(t => formatTrip(t)).join("\n\n") || "❌ Aucun passage";
+
+  return trips.slice(0, 4).map(t => formatTrip(t)).join("\n\n");
 }
 
 function formatTrip(t) {
@@ -112,26 +78,32 @@ function formatTrip(t) {
   const expectedRaw = call.ExpectedDepartureTime;
   const aimed = aimedRaw ? new Date(aimedRaw) : null;
   const expected = expectedRaw ? new Date(expectedRaw) : null;
-  if (!expected) return "⛔ Heure inconnue";
+  if (!expected) return "⛔ Horaire indisponible pour ce passage.";
 
   const delay = aimed ? (expected - aimed) / 60000 : 0;
   const timeLeft = Math.round((expected - new Date()) / 60000);
-  const delayStr = delay > 1 ? ` (retard +${Math.round(delay)} min)` : "";
+  const delayStr = delay > 1 ? ` (+${Math.round(delay)} min)` : "";
   const imminent = timeLeft <= 1.5;
-
-  const aimedStr = aimed ? aimed.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : "—";
   const expectedStr = expected.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 
-  const direction = journey.DirectionName?.[0]?.value || journey.DestinationName?.[0]?.value || "Direction inconnue";
-  const timeInfo = imminent ? "🟢 imminent" : `⏳ dans ${timeLeft} min`;
+  const destination = journey.DestinationName?.[0]?.value || "Destination inconnue";
+  const timeInfo = imminent ? "🟢 imminent" : `⏳ ${timeLeft} min`;
 
-  return `🕐 ${aimedStr} → ${expectedStr} ${timeInfo}${delayStr}\nDirection ${direction}`;
+  return `🚌 ${expectedStr} (${timeInfo}${delayStr}) → ${destination}`;
 }
 
 async function processTraffic(lineId) {
   const traffic = await fetchTraffic(lineId);
   const disruptions = traffic?.Siri?.ServiceDelivery?.GeneralMessageDelivery?.[0]?.InfoMessage || [];
-  return disruptions.map(d => d.InfoMessageText?.[0]?.value).join("\n\n") || "✅ Pas de perturbation signalée";
+  return disruptions.length > 0
+    ? disruptions.map(d => {
+        const messages = d.Message || [];
+        return messages.map(m => {
+          const text = m.MessageText?.value || "Message non disponible";
+          return `⚠️ ${text}`;
+        }).join("\n\n");
+      }).join("\n\n")
+    : "✅ Pas de perturbation signalée";
 }
 
 async function fetchTraffic(lineId) {
@@ -181,18 +153,28 @@ function updateGlobalDateTime() {
 
 async function fetchVelib(stationId, elementIdPrefix) {
   updateElementTime(`${elementIdPrefix}-update`);
-  const url = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json";
+  const url = `${API_PROXY_URL}https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json`;
   try {
     const res = await fetchWithTimeout(url);
     if (!res.ok) throw new Error(`Erreur Vélib ${res.status}`);
     const data = await res.json();
-const station = data.data.stations.find(s => String(s.station_id) === String(stationId));
+    const station = data.data.stations.find(s => String(s.station_id) === String(stationId));
     if (!station) throw new Error("Station Vélib introuvable");
     updateElementText(elementIdPrefix, `🚲 ${station.num_bikes_available} vélos - 🅿️ ${station.num_docks_available} bornes`);
   } catch (e) {
     console.warn("Erreur Vélib:", e);
     updateElementText(elementIdPrefix, "⚠️ Données Vélib indisponibles");
   }
+}
+
+function getWeatherDescription(code) {
+  const desc = {
+    0: "ciel dégagé", 1: "peu nuageux", 2: "partiellement nuageux", 3: "couvert",
+    45: "brouillard", 48: "brouillard givrant", 51: "bruine légère", 53: "bruine modérée",
+    55: "bruine dense", 61: "pluie faible", 63: "pluie modérée", 65: "pluie forte",
+    80: "averses légères", 81: "averses modérées", 82: "averses fortes", 95: "orage"
+  };
+  return desc[code] || "conditions inconnues";
 }
 
 async function fetchWeather() {
@@ -203,8 +185,11 @@ async function fetchWeather() {
     if (!res.ok) throw new Error(`Erreur météo ${res.status}`);
     const data = await res.json();
     const temp = data.current.temperature_2m;
-    const desc = getWeatherDescription(data.current.weathercode);
-    updateElementText("weather-content", `🌡 ${temp}°C, ${desc}`);
+    const code = data.current.weathercode;
+    const desc = getWeatherDescription(code);
+    const iconSrc = `img/${code}.png`;
+    const iconHtml = `<img src="${iconSrc}" alt="${desc}" style="height:24px;vertical-align:middle;" onerror="this.src='img/default.png';">`;
+    updateElementText("weather-content", `${iconHtml} 🌡 ${temp}°C, ${desc}`);
   } catch (e) {
     console.warn("Erreur météo:", e);
     updateElementText("weather-content", "⚠️ Météo indisponible");
@@ -235,13 +220,6 @@ async function refreshAll() {
       updateStop("bus201-breuil", STOP_IDS.bus201_breuil, "STIF:Line::C01805:"),
       fetchVelib(VELIB_IDS.vincennes, "velib-vincennes"),
       fetchVelib(VELIB_IDS.breuil, "velib-breuil"),
-      // Premier chargement RSS Franceinfo
-fetchAndDisplayRSS("https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https://www.francetvinfo.fr/titres.rss", "#rss-news"),
-
-// Rafraîchissement toutes les heures
-setInterval(() => {
-fetchAndDisplayRSS("https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https://www.francetvinfo.fr/titres.rss", "#rss-news"),
-}, 60 * 60 * 1000),
       fetchWeather(),
       fetchTrafficRoad()
     ]);
@@ -251,6 +229,9 @@ fetchAndDisplayRSS("https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https
 }
 
 refreshAll();
-setInterval(refreshAll, 60000);
+setInterval(refreshAll, 5 * 60 * 1000);
 
-
+fetchAndDisplayRSS("https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https://www.francetvinfo.fr/titres.rss", "#rss-news");
+setInterval(() => {
+  fetchAndDisplayRSS("https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https://www.francetvinfo.fr/titres.rss", "#rss-news");
+}, 60 * 60 * 1000);
