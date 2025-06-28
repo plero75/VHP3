@@ -1,55 +1,119 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Dashboard Temps Réel - Transports & Actualités</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VHP Dashboard avec Ticker</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', sans-serif;
+      margin: 0;
+      background: #f5f6fa;
+      color: #333;
+    }
+    #ticker-container {
+      overflow: hidden;
+      white-space: nowrap;
+      background: #007bff;
+      color: white;
+      padding: 0.5em 1em;
+      font-weight: bold;
+      font-size: 1.1em;
+      user-select: none;
+    }
+    #ticker-content {
+      display: inline-block;
+      padding-left: 100%;
+      animation: ticker-scroll 20s linear infinite;
+    }
+    @keyframes ticker-scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
+    }
+    .container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1rem;
+      padding: 1rem;
+    }
+    .block {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .block-title {
+      margin-top: 0;
+      margin-bottom: 0.3em;
+      font-size: 1.2em;
+      color: #007bff;
+    }
+    .block-update {
+      font-size: 0.85em;
+      color: #666;
+      margin-bottom: 0.8em;
+      font-style: italic;
+    }
+    .block-content {
+      white-space: pre-line;
+      line-height: 1.5;
+      font-size: 1em;
+      color: #222;
+    }
+    .block-content br {
+      margin-bottom: 0.5em;
+      display: block;
+    }
+    @media (max-width: 600px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
-
-  <h1>🚌 Dashboard Temps Réel - Transports & Actualités</h1>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-
-  <section>
-  <h2>📰 Actualités</h2>
-  <div id="rss-news" class="fade-news">Chargement...</div>
-</section>
-
-    
+  <div id="ticker-container">
+    <div id="ticker-content">Chargement des actualités...</div>
   </div>
-<div class="block" id="meteo">
-  <h2>🌤 Météo locale</h2>
-  <p>Chargement...</p>
-</div>
 
-  <section>
-    <h2>🚆 RER A (Joinville-le-Pont)</h2>
-    <div id="rer-a">Chargement...</div>
-    <div id="info-rer-a"></div>
-  </section>
-
-  <section>
-    <h2>🚌 Bus 77 (Hippodrome de Vincennes)</h2>
-    <div id="bus-77">Chargement...</div>
-    <div id="info-bus-77"></div>
-  </section>
-
-  <section>
-    <h2>🚌 Bus 201 (École du Breuil)</h2>
-    <div id="bus-201">Chargement...</div>
-    <div id="info-bus-201"></div>
-  </section>
-
-  <section>
-    <h2>🚲 Vélib’ Vincennes</h2>
-    <div id="velib-vincennes">Chargement...</div>
-  </section>
-
-  <section>
-    <h2>🚲 Vélib’ École du Breuil</h2>
-    <div id="velib-breuil">Chargement...</div>
-  </section>
-
+  <div id="current-time" style="padding: 1rem; font-size: 1.1em;">🕒 Chargement...</div>
+  <div class="container">
+    <div class="block">
+      <h3 class="block-title">🚆 RER A – Joinville-le-Pont</h3>
+      <div class="block-update" id="rer-joinville-update"></div>
+      <div class="block-content" id="rer-joinville"></div>
+    </div>
+    <div class="block">
+      <h3 class="block-title">🚌 Bus 77 – Hippodrome de Vincennes</h3>
+      <div class="block-update" id="bus77-hippo-update"></div>
+      <div class="block-content" id="bus77-hippo"></div>
+    </div>
+    <div class="block">
+      <h3 class="block-title">🚌 Bus 201 – École du Breuil</h3>
+      <div class="block-update" id="bus201-breuil-update"></div>
+      <div class="block-content" id="bus201-breuil"></div>
+    </div>
+    <div class="block">
+      <h3 class="block-title">🚲 Vélib’ – Vincennes</h3>
+      <div class="block-update" id="velib-vincennes-update"></div>
+      <div class="block-content" id="velib-vincennes"></div>
+    </div>
+    <div class="block">
+      <h3 class="block-title">🚲 Vélib’ – Breuil</h3>
+      <div class="block-update" id="velib-breuil-update"></div>
+      <div class="block-content" id="velib-breuil"></div>
+    </div>
+    <div class="block">
+      <h3 class="block-title">🌤 Météo Vincennes</h3>
+      <div class="block-update" id="weather-update"></div>
+      <div class="block-content" id="weather-content"></div>
+    </div>
+    <div class="block">
+      <h3 class="block-title">🚦 Trafic routier</h3>
+      <div class="block-update" id="traffic-road-update"></div>
+      <div class="block-content" id="traffic-road-content"></div>
+    </div>
+  </div>
   <script src="script.js"></script>
 </body>
 </html>
