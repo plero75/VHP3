@@ -22,7 +22,6 @@ async function fetchAndDisplay(url, containerId, updateId) {
     lastPassageToday.setHours(parseInt(lastParts[0]), parseInt(lastParts[1]), 0, 0);
     if (parseInt(lastParts[0]) < 5) lastPassageToday.setDate(now.getDate() + 1);
 
-    // Séparer les passages par direction
     const directions = {};
     visits.forEach(v => {
       const mvj = v.MonitoredVehicleJourney;
@@ -161,6 +160,56 @@ async function fetchVelibDirect(url, containerId) {
   }
 }
 
+async function fetchWeather(containerId) {
+  try {
+    const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=48.835&longitude=2.423&current_weather=true');
+    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+    const w = (await response.json()).current_weather;
+    document.getElementById(containerId).innerHTML = `
+      <p>🌡 Température : ${w.temperature}°C</p>
+      <p>💨 Vent : ${w.windspeed} km/h</p>
+      <p>🌥 Conditions : ${w.weathercode}</p>
+    `;
+  } catch (error) {
+    console.error(error);
+    document.getElementById(containerId).innerHTML = '<p>❌ Erreur météo</p>';
+  }
+}
+
+async function fetchTraffic(containerId) {
+  try {
+    const response = await fetch('https://www.data.gouv.fr/fr/datasets/r/0845c838-6f18-40c3-936f-da204107759a');
+    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+    const data = await response.json();
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+
+    const filtered = data.filter(r =>
+      r.route && (r.route.includes('A86') || r.route.toLowerCase().includes('périphérique'))
+    );
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<p>✅ Circulation fluide sur A86 et périph.</p>';
+    } else {
+      filtered.forEach(r => {
+        container.innerHTML += `
+          <div class="passage">
+            <p>🛣 <strong>${r.route}</strong></p>
+            <p>🚦 État : ${r.etat_circulation || 'N/A'}</p>
+            <p>📍 Localisation : ${r.localisation || 'Non précisée'}</p>
+            ${r.nature_evenement ? `<p>⚠️ Événement : ${r.nature_evenement}</p>` : ''}
+            ${r.description_evenement ? `<p>📝 Détails : ${r.description_evenement}</p>` : ''}
+            <hr>
+          </div>
+        `;
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    document.getElementById(containerId).innerHTML = '<p>❌ Erreur trafic routier</p>';
+  }
+}
+
 function refreshAll() {
   fetchAndDisplay('https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:43135:', 'rer-a-passages', 'rer-a-update');
   fetchAndDisplay('https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463641:', 'bus-77-passages', 'bus-77-update');
@@ -178,14 +227,11 @@ function refreshAll() {
   displayStops('bus-77-stops', 'bus-77');
   displayStops('bus-201-stops', 'bus-201');
 
-  fetchVelibDirect(
-    'https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12163)&timezone=Europe%2FBerlin',
-    'velib-vincennes-data'
-  );
-  fetchVelibDirect(
-    'https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12128)&timezone=Europe%2FBerlin',
-    'velib-breuil-data'
-  );
+  fetchVelibDirect('https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12163)&timezone=Europe%2FBerlin', 'velib-vincennes-data');
+  fetchVelibDirect('https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12128)&timezone=Europe%2FBerlin', 'velib-breuil-data');
+
+  fetchWeather('weather-data');
+  fetchTraffic('traffic-data');
 }
 
 refreshAll();
