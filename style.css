@@ -145,3 +145,45 @@ body {
 .carousel-indicators .dot.active {
   background-color: #fff;
 }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden; /* pas de scroll vertical */
+  font-family: sans-serif;
+  background: #f0f0f0;
+}
+
+main {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-rows: auto;
+  gap: 0.5rem;
+  height: calc(100vh - 80px); /* laisser place aux header/footer si besoin */
+  padding: 0.5rem;
+  box-sizing: border-box;
+  overflow: hidden; /* pas de scroll interne */
+}
+
+.block {
+  background: white;
+  border-radius: 8px;
+  padding: 0.5rem;
+  overflow-y: auto; /* scroll interne seulement si trop de contenu dans le bloc */
+  box-sizing: border-box;
+}
+
+.block h2, .block h3 {
+  margin: 0.25rem 0;
+  font-size: 1rem;
+}
+
+.passage, .alert, .stops, .update-time {
+  font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+  .block h2, .block h3 { font-size: 0.8rem; }
+  .passage, .alert, .stops, .update-time { font-size: 0.75rem; }
+}
