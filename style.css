@@ -1,62 +1,80 @@
-html, body {
+body {
   margin: 0;
   padding: 0;
-  height: 100%;
-  overflow: hidden;
   font-family: sans-serif;
-  background: #e6e8eb;
-  color: #333;
+  background: #1f1f1f;
+  color: #fff;
+  height: 100vh;
+  overflow: hidden;
 }
 
-header, footer {
-  background: #333;
+header {
+  display: flex;
+  align-items: center;
+  background: #111;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  justify-content: space-between;
+}
+
+header img {
+  height: 40px;
+}
+
+.header-center h1 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.alert-banner {
+  background: #c62828;
   color: white;
   text-align: center;
   padding: 0.5rem;
+  font-weight: bold;
 }
 
 main {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
   gap: 0.5rem;
-  height: calc(100vh - 80px);
   padding: 0.5rem;
+  height: calc(100vh - 100px); /* header + alert */
   box-sizing: border-box;
 }
 
 .block {
-  background: white;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 0.5rem;
-  height: 100%;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  font-size: clamp(0.8rem, 1.2vw, 1.4rem);
-}
-
-.block h2 {
-  font-size: clamp(1.2rem, 1.5vw, 2rem);
-  margin: 0 0 0.2rem;
-  border-bottom: 2px solid #ddd;
-  padding-bottom: 0.2rem;
-}
-
-.passage, .alert, .stops, .update-time, .block p {
-  margin: 0.15rem 0;
-  line-height: 1.2;
-  white-space: nowrap;
-  text-overflow: ellipsis;
   overflow: hidden;
 }
 
-.alert {
-  color: #b00020;
-  font-weight: 600;
+.rer-block { background: #b71c1c; }
+.bus77-block { background: #1565c0; }
+.bus201-block { background: #2e7d32; }
+.velib-block { background: #4e342e; }
+.weather-block { background: #37474f; }
+.traffic-block { background: #263238; }
+
+.block h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.4rem;
+  border-bottom: 2px solid rgba(255,255,255,0.3);
+  padding-bottom: 0.3rem;
 }
 
-footer {
-  font-size: 0.8rem;
+.passage, .alert, .block p {
+  font-size: 1.2rem;
+  margin: 0.2rem 0;
 }
+
+.passage strong {
+  color: #fff;
+}
+
+.passage .imminent { color: #4caf50; }
+.passage .delayed { color: #fbc02d; }
+.passage .cancelled { color: #e53935; }
