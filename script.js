@@ -106,12 +106,17 @@ async function fetchTraffic(lineId) {
 
 async function updateStop(elementIdPrefix, stopIds, lineId) {
   updateElementTime(`${elementIdPrefix}-update`);
-  const [tripsText, trafficText] = await Promise.all([
-    processTrips(stopIds),
-    processTraffic(lineId)
-  ]);
-  const finalText = tripsText + "\n\n🚦 Info trafic :\n" + trafficText;
-  updateElementText(elementIdPrefix, finalText);
+  try {
+    const [tripsText, trafficText] = await Promise.all([
+      processTrips(stopIds),
+      processTraffic(lineId)
+    ]);
+    const finalText = tripsText + "\n\n🚦 Info trafic :\n" + trafficText;
+    updateElementText(elementIdPrefix, finalText);
+  } catch (e) {
+    console.warn(`Erreur updateStop ${elementIdPrefix}:`, e);
+    updateElementText(elementIdPrefix, "⚠️ Données indisponibles");
+  }
 }
 
 function updateElementTime(elementId) {
