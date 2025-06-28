@@ -138,25 +138,42 @@ fetchAndDisplayRSS("https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=https
 }, 60 * 60 * 1000);
 
 // Vélib'
+ 
 async function fetchVelib(stationId, elementId) {
   setLoading(elementId);
-  const url = `${CORS_PROXY}https://prim.iledefrance-mobilites.fr/marketplace/velib/station_status.json`;
+  const url = "https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json";
   try {
-    const data = await fetchWithRetry(url);
-    const station = data?.data?.stations?.find(s => s.station_id === stationId);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
+    const data = await res.json();
+
+    const station = data?.data?.stations?.find(s => String(s.station_id) === String(stationId));
     if (station) {
       const types = station.num_bikes_available_types || [];
       let mec = 0, elec = 0;
-      types.forEach(t => { if (t.vehicle_type_id === 1) mec = t.bikes_available; if (t.vehicle_type_id === 2) elec = t.bikes_available; });
-      const html = `🚲 ${station.num_bikes_available} vélos : <img src="img/velibmec.png" alt="Mécaniques" style="height:20px;"> ${mec} &nbsp;<img src="img/velibelec.png" alt="Électriques" style="height:20px;"> ${elec} &nbsp;🅿️ ${station.num_docks_available} bornes libres`;
+
+      types.forEach(typeObj => {
+        if (typeObj.mechanical !== undefined) mec = typeObj.mechanical;
+        if (typeObj.ebike !== undefined) elec = typeObj.ebike;
+      });
+
+      const total = station.num_bikes_available;
+      const docks = station.num_docks_available;
+      const html = `🚲 ${total} vélos :
+        <img src="img/velibmec.png" alt="Mécaniques" style="height:20px;"> ${mec} &nbsp;
+        <img src="img/velibelec.png" alt="Électriques" style="height:20px;"> ${elec} &nbsp;
+        🅿️ ${docks} bornes libres`;
       document.querySelector(elementId).innerHTML = html;
-    } else document.querySelector(elementId).innerHTML = "⚠️ Station Vélib introuvable ou indisponible.";
+    } else {
+      document.querySelector(elementId).innerHTML = "⚠️ Station Vélib introuvable ou indisponible.";
+    }
     updateTimestamp(elementId);
   } catch (e) {
     console.error(e);
     document.querySelector(elementId).textContent = `Erreur : ${e.message}`;
   }
 }
+
 
 // Mises à jour globales
 async function updateLines() { await Promise.all(LINES.map(line => fetchPrimStop(line))); }
