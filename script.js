@@ -137,20 +137,26 @@ async function fetchAndDisplayRSS(url, elementId) {
     document.querySelector(elementId).textContent = `Erreur RSS : ${e.message}`;
   }
 }
+fetch("public/gtfs-info.json")
+  .then(res => res.json())
+  .then(data => {
+    document.querySelector("#first-last").textContent = `🚆 Premier départ : ${data.first} — Dernier départ : ${data.last}`;
+    document.querySelector("#stops-list").textContent = `🛤️ Arrêts : ${data.stops.join(" ➔ ")}`;
+  })
+  .catch(e => {
+    console.error("Erreur chargement GTFS info", e);
+    document.querySelector("#first-last").textContent = "🚆 Premier/dernier départ : données indisponibles";
+    document.querySelector("#stops-list").textContent = "🛤️ Arrêts : données indisponibles";
+  });
 
-function updateLines() { for (const line of LINES) fetchPrimStop(line); }
-function updatePerturbations() { for (const line of LINES) fetchPrimInfo(line); }
-function updateVelib() {
-  fetchVelib("1074333296", "#velib-vincennes");
-  fetchVelib("508042092", "#velib-breuil");
-}
-
+// Appels habituels :
 updateLines();
 updatePerturbations();
 updateVelib();
 fetchWeather();
 fetchAndDisplayRSS(`${CORS_PROXY}https://www.francetvinfo.fr/titres.rss`, "#rss-news");
 
+// Rafraîchissements périodiques
 setInterval(updateLines, 2 * 60 * 1000);
 setInterval(updateVelib, 15 * 60 * 1000);
 setInterval(updatePerturbations, 30 * 60 * 1000);
