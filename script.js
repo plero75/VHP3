@@ -1,4 +1,4 @@
-const CORS_PROXY = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";
+const CORS_PROXY = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";More actions
 
 const LINES = [
   { name: "RER A", monitoringRef: "STIF:StopPoint:Q:43135:", lineRef: "STIF:Line::C01742:", elementId: "#rer-a", infoId: "#info-rer-a" },
@@ -38,95 +38,39 @@ async function fetchPrimStop(line) {
       return;
     }
     let html = "<ul>";
-    visits.slice(0, 2).forEach((v) => { // max 2 passages pour compacité
+    visits.slice(0, 4).forEach((v) => {
       const mvj = v.MonitoredVehicleJourney, mc = mvj?.MonitoredCall;
       const expectedRaw = mc?.ExpectedDepartureTime;
       const expectedDate = expectedRaw ? new Date(expectedRaw) : null;
       const timeLeft = expectedDate ? Math.round((expectedDate - new Date()) / 60000) : null;
+
       const timeStr = expectedDate?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || "--:--";
       const minuteStr = timeLeft !== null ? `(dans ${timeLeft} min)` : "";
       const dest = mvj.DestinationName?.[0]?.value || "Destination inconnue";
       const imminentClass = timeLeft !== null && timeLeft <= 2 ? "imminent" : "";
       html += `<li class="passage ${imminentClass}"><div>${timeStr} ${minuteStr} ➔ ${dest}</div></li>`;
+
     });
     html += "</ul>";
     document.querySelector(line.elementId).innerHTML = html;
-    updateTimestamp(line.elementId);
-  } catch (e) {
-    console.error(e);
-    document.querySelector(line.elementId).textContent = `Erreur : ${e.message}`;
-  }
-}
-
-async function fetchPrimInfo(line) {
-  const url = `${CORS_PROXY}https://prim.iledefrance-mobilites.fr/marketplace/general-message?LineRef=${line.lineRef}`;
-  try {
-    const data = await fetchWithRetry(url);
-    const infos = data.Siri?.ServiceDelivery?.GeneralMessageDelivery?.[0]?.InfoMessage || [];
-    const messages = infos.map(m => m?.Content?.Message?.[0]?.value).filter(Boolean).map(msg => `⚠️ ${msg}`).join("<br>");
-    document.querySelector(line.infoId).innerHTML = messages || "✅ Aucun problème signalé.";
-  } catch (e) {
-    console.error(e);
-    document.querySelector(line.infoId).textContent = `Erreur : ${e.message}`;
-  }
-}
-
-async function fetchVelib(stationId, elementId) {
-  setLoading(elementId);
-  const url = `${CORS_PROXY}https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json`;
-  try {
-    const data = await fetchWithRetry(url);
-    const station = data?.data?.stations?.find(s => String(s.station_id) === String(stationId));
-    if (station) {
-      const types = station.num_bikes_available_types || [];
-      let mec = 0, elec = 0;
-      types.forEach(typeObj => {
-        if ("mechanical" in typeObj) mec = typeObj.mechanical;
-        if ("ebike" in typeObj) elec = typeObj.ebike;
-      });
-      const html = `🚲 ${station.num_bikes_available} vélos : 🚴 ${mec} méc. ⚡ ${elec} élec. 🅿️ ${station.num_docks_available} bornes libres`;
-      document.querySelector(elementId).innerHTML = html;
-    } else {
-      document.querySelector(elementId).innerHTML = "⚠️ Station Vélib introuvable";
-    }
-    updateTimestamp(elementId);
-  } catch (e) {
-    console.error(e);
-    document.querySelector(elementId).textContent = `Erreur : ${e.message}`;
-  }
-}
-
-async function fetchWeather() {
-  const url = "https://api.open-meteo.com/v1/forecast?latitude=48.835&longitude=2.43&current=temperature_2m,weathercode&timezone=Europe%2FParis";
-  try {
-    const res = await fetch(url);
+@@ -105,16 +103,11 @@
     if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
     const data = await res.json();
     const temp = data.current.temperature_2m;
+
     const desc = {
       0:"Ciel clair",1:"Principalement clair",2:"Partiellement nuageux",3:"Couvert",45:"Brouillard",
       51:"Bruine",61:"Pluie légère",80:"Averses",95:"Orages"
     }[data.current.weathercode] || "Inconnu";
     document.querySelector("#meteo").innerHTML = `🌡 ${temp}°C, ${desc}`;
+
+
+
+
     updateTimestamp("#meteo");
   } catch (e) {
     console.error(e);
-    document.querySelector("#meteo").textContent = `Erreur : ${e.message}`;
-  }
-}
-
-async function fetchAndDisplayRSS(url, elementId) {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
-    const text = await res.text();
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(text, "application/xml");
-    const items = Array.from(xml.querySelectorAll("item")).slice(0, 5);
-    const titles = items.map(item => item.querySelector("title")?.textContent.trim()).filter(Boolean);
-    document.querySelector(elementId).textContent = "📰 " + titles.join(" | ");
-  } catch (e) {
-    console.error(e);
+@@ -137,6 +130,15 @@
     document.querySelector(elementId).textContent = `Erreur RSS : ${e.message}`;
   }
 }
@@ -139,15 +83,10 @@ function updateVelib() {
 }
 
 // GTFS info
-fetch("gtfs-info.json")
+fetch("public/gtfs-info.json")
   .then(res => res.json())
   .then(data => {
-    document.querySelector("#first-last").textContent = `🚆 Premier départ : ${data.first} — Dernier départ : ${data.last}`;
-    document.querySelector("#stops-list").textContent = `🛤️ Arrêts : ${data.stops.join(" ➔ ")}`;
-  })
-  .catch(e => {
-    console.error("Erreur chargement GTFS info", e);
-    document.querySelector("#first-last").textContent = "🚆 Premier/dernier départ : données indisponibles";
+@@ -149,7 +151,7 @@
     document.querySelector("#stops-list").textContent = "🛤️ Arrêts : données indisponibles";
   });
 
@@ -155,45 +94,3 @@ fetch("gtfs-info.json")
 updateLines();
 updatePerturbations();
 updateVelib();
-fetchWeather();
-fetchAndDisplayRSS(`${CORS_PROXY}https://www.francetvinfo.fr/titres.rss`, "#rss-news");
-
-// Rafraîchissements périodiques
-setInterval(updateLines, 2 * 60 * 1000);
-setInterval(updateVelib, 15 * 60 * 1000);
-setInterval(updatePerturbations, 30 * 60 * 1000);
-setInterval(fetchWeather, 15 * 60 * 1000);
-setInterval(() => fetchAndDisplayRSS(`${CORS_PROXY}https://www.francetvinfo.fr/titres.rss`, "#rss-news"), 60 * 60 * 1000);
-
-// Carrousel automatique avec indicateurs
-const blocks = document.querySelectorAll('.line-block');
-const indicatorsContainer = document.getElementById('carousel-indicators');
-let current = 0;
-
-// Crée les indicateurs
-blocks.forEach((_, i) => {
-  const dot = document.createElement('span');
-  dot.classList.add('dot');
-  indicatorsContainer.appendChild(dot);
-});
-const dots = document.querySelectorAll('.carousel-indicators .dot');
-
-function showBlock(index) {
-  blocks.forEach((b, i) => b.classList.toggle('active', i === index));
-  dots.forEach((d, i) => d.classList.toggle('active', i === index));
-}
-
-// Affiche le premier bloc et lance le carrousel
-showBlock(current);
-setInterval(() => {
-  current = (current + 1) % blocks.length;
-  showBlock(current);
-}, 7000);
-
-// Navigation manuelle avec clic sur les points
-dots.forEach((dot, i) => {
-  dot.addEventListener('click', () => {
-    current = i;
-    showBlock(current);
-  });
-});
