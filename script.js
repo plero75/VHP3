@@ -18,6 +18,7 @@ async function fetchWeather(containerId = 'weather-info') {
   } catch (err) { console.error(err); document.getElementById(containerId).innerHTML = '❌ Erreur météo'; }
 }
 
+
 let newsItems = [];
 let currentNewsIndex = 0;
 
@@ -43,12 +44,27 @@ async function fetchNewsTicker(containerId) {
 function showNewsItem(containerId) {
   if (newsItems.length === 0) return;
   const item = newsItems[currentNewsIndex];
+  // Titre + description coupée (max 200c)
+  const desc = item.description ? item.description.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/ +/g, ' ').trim() : '';
+  const shortDesc = desc.length > 200 ? desc.slice(0,197).replace(/ [^ ]*$/, '') + "…" : desc;
+  document.getElementById(containerId).innerHTML = `<div class="news-item">
+    📰 <b>${item.title}</b>
+    <div class="news-desc">${shortDesc}</div>
+  </div>`;
+  currentNewsIndex = (currentNewsIndex + 1) % newsItems.length;
+  setTimeout(() => showNewsItem(containerId), 7000); // une actu toutes les 7 sec
+}
+
+function showNewsItem(containerId) {
+  if (newsItems.length === 0) return;
+  const item = newsItems[currentNewsIndex];
   document.getElementById(containerId).innerHTML = `<div class="news-item">📰 ${item.title}</div>`;
   currentNewsIndex = (currentNewsIndex + 1) % newsItems.length;
   setTimeout(() => showNewsItem(containerId), 4000); // change toutes les 4 sec
 }
 
 // -- Partie passages :
+
 
 function formatAttente(expected, now = new Date()) {
   const diffMs = expected - now;
@@ -58,15 +74,80 @@ function formatAttente(expected, now = new Date()) {
   return `dans ${min} min`;
 }
 
-// Horaires théoriques RER A, exemple (valeurs à adapter !)
-const RER_A_HORAIRES = ["05:12", "05:24", "05:35", "05:49", "06:01", "06:13", "23:22", "23:40", "23:55"];
-const RER_A_GARES = [
-  "Saint-Germain-en-Laye", "Le Vésinet–Le Pecq", "Le Vésinet–Centre", "Chatou–Croissy", "Rueil-Malmaison",
-  "Nanterre-Ville", "Nanterre-Université", "Nanterre–Préfecture", "La Défense", "Charles de Gaulle–Étoile",
-  "Auber", "Châtelet–Les Halles", "Gare de Lyon", "Nation", "Vincennes", "Fontenay-sous-Bois", "Nogent-sur-Marne",
-  "Joinville-le-Pont", "Saint-Maur–Créteil", "Le Parc de Saint-Maur", "Champigny", "La Varenne–Chennevières",
-  "Sucy–Bonneuil", "Boissy-Saint-Léger"
+const GARES_PARIS = [
+  "Paris", "Châtelet", "Gare de Lyon", "Auber", "Nation", "Charles de Gaulle", "La Défense"
 ];
+
+function highlightGare(station, actuelle) {
+  if (GARES_PARIS.some(kw => station.toLowerCase().includes(kw.toLowerCase())))
+    return `<span class="gare-paris">${station}</span>`;
+  if (station.toLowerCase() === actuelle.toLowerCase())
+    return `<span class="gare-actuelle">${station}</span>`;
+  return station;
+}
+
+async function fetchAndDisplay(url, containerId, updateId) {
+  try {
+    const response = await fetch(CORS_PROXY + encodeURIComponent(url));
+    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+    const data = await response.json();
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    const visits = data.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || [];
+    if (visits.length === 0) { container.innerHTML = '🛑 Aucun passage'; return; }
+
+    // Regrouper par destination
+    const groups = {};
+    visits.forEach(v => {
+      const dest = v.MonitoredVehicleJourney.DestinationName?.[0]?.value || 'Inconnu';
+      if (!groups[dest]) groups[dest] = [];
+      groups[dest].push(v);
+    });
+
+    Object.entries(groups).forEach(([dest, group]) => {
+      group.sort((a, b) => new Date(a.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime) - new Date(b.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime));
+      const premier = group[0];
+      const dernier = group[group.length - 1];
+
+      container.innerHTML += `<div class="sens-block"><div class="sens-title">Vers <b>${dest}</b></div>`;
+      group.forEach((v, idx) => {
+        const mvj = v.MonitoredVehicleJourney;
+        const expected = new Date(mvj.MonitoredCall.ExpectedDepartureTime);
+        const attenteTxt = formatAttente(expected, new Date());
+        const isDernier = v === dernier;
+
+        // Gares desservies sur ce voyage :
+        const onward = mvj.OnwardCalls?.OnwardCall?.map(call => call.StopPointName?.[0]?.value).filter(Boolean) || [];
+        const arretActuel = mvj.MonitoredCall.StopPointName?.[0]?.value || "";
+        let garesHtml = onward.length ?
+          `<div class="gares-defile">` + onward.map(station => highlightGare(station, arretActuel)).join(' <span>|</span> ') + '</div>'
+          : '';
+
+        container.innerHTML += `
+          <div class="passage-block">
+            <strong>🕐 ${expected.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</strong>
+            <span> (${attenteTxt})</span>
+            ${isDernier ? '<span class="dernier-train">DERNIER AVANT FIN SERVICE</span>' : ''}
+            ${garesHtml}
+          </div>
+        `;
+      });
+      container.innerHTML += `<div class="premier-dernier">
+        Premier départ : <b>${new Date(premier.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</b> /
+        Dernier départ : <b>${new Date(dernier.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</b>
+        </div></div>`;
+    });
+
+    if (updateId) {
+      const updateEl = document.getElementById(updateId);
+      if (updateEl) updateEl.textContent = "Mise à jour : " + (new Date()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+  } catch (err) {
+    console.error(err);
+    const container = document.getElementById(containerId);
+    if (container) container.innerHTML = '❌ Erreur chargement passages';
+  }
+}
 
 async function fetchAndDisplay(url, containerId, updateId, premierId, dernierId, garesId) {
   try {
