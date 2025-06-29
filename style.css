@@ -17,6 +17,14 @@ html, body {
   border-radius: 8px;
   font-size: 1rem;
 }
+.news-item {
+  animation: pushFade 0.5s ease;
+}
+
+@keyframes pushFade {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
 
 .header-bar div {
   flex: 1;
