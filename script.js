@@ -218,12 +218,23 @@ function refreshAll() {
   fetchAndDisplay('https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:43135:', 'rer-a-passages', 'rer-a-update');
   fetchAndDisplay('https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463641:', 'bus-77-passages', 'bus-77-update');
   fetchAndDisplay('https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463644:', 'bus-201-passages', 'bus-201-update');
-fetchWeather('weather-data');
 
-fetchVelibDirect('https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12163)&timezone=Europe%2FParis', 'velib-vincennes-data');
-fetchVelibDirect('https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12128)&timezone=Europe%2FParis', 'velib-breuil-data');
+  fetchWeather('weather-data');
 
-fetchNewsFeed('news-feed');
+  fetchVelibDirect('https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12163)&timezone=Europe%2FParis', 'velib-vincennes-data');
+  fetchVelibDirect('https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12128)&timezone=Europe%2FParis', 'velib-breuil-data');
+
+  fetchNewsFeed('news-feed');
 
   fetchTrafficAlerts('STIF:Line::C01742:', 'rer-a-alerts');
-  fetchTrafficAlerts('STIF:Lin
+  fetchTrafficAlerts('STIF:Line::C00777:', 'bus-77-alerts');
+  fetchTrafficAlerts('STIF:Line::C00201:', 'bus-201-alerts');
+
+  displayStops('rer-a-stops', 'rer-a');
+  displayStops('bus-77-stops', 'bus-77');
+  displayStops('bus-201-stops', 'bus-201');
+}
+
+// Lancer immédiatement et rafraîchir toutes les 60 secondes
+refreshAll();
+setInterval(refreshAll, 60000);
