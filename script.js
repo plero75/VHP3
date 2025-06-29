@@ -85,7 +85,7 @@ function highlightGare(station, actuelle) {
   return station;
 }
 
-async function fetchAndDisplay(url, containerId, updateId) {
+async function fetchAndDisplay(url, containerId, updateId, debugId) {
   try {
     const response = await fetch(CORS_PROXY + encodeURIComponent(url));
     if (!response.ok) throw new Error(`HTTP error ${response.status}`);
@@ -142,6 +142,10 @@ async function fetchAndDisplay(url, containerId, updateId) {
     if (updateId) {
       const updateEl = document.getElementById(updateId);
       if (updateEl) updateEl.textContent = "Mise à jour : " + (new Date()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+    if (debugId) {
+      const debugEl = document.getElementById(debugId);
+      if (debugEl) debugEl.innerText = JSON.stringify(data, null, 2);
     }
   } catch (err) {
     console.error(err);
