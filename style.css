@@ -40,12 +40,10 @@ html, body {
   padding: 10px;
   font-size: 1rem;
   border-radius: 8px;
-  animation: news-scroll 20s linear infinite;
-  margin: 12px;
+     margin: 12px;
 }
 
-@keyframes news-scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-
+ 
 .dashboard-grid {
   display: grid;
   grid-template-areas:
