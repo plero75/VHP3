@@ -1,3 +1,4 @@
+
 const CORS_PROXY = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";
 
 // --- BANDEAU ACTU ---
@@ -55,7 +56,7 @@ function highlightGare(station) {
   return station;
 }
 
-async function fetchAndDisplay(url, containerId, updateId, debugId) {
+async function fetchAndDisplay(url, containerId, updateId) {
   try {
     const response = await fetch(CORS_PROXY + encodeURIComponent(url));
     if (!response.ok) throw new Error(`HTTP error ${response.status}`);
@@ -113,10 +114,6 @@ async function fetchAndDisplay(url, containerId, updateId, debugId) {
       const updateEl = document.getElementById(updateId);
       if (updateEl) updateEl.textContent = "Mise à jour : " + (new Date()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     }
-    if (debugId) {
-      const debugEl = document.getElementById(debugId);
-      if (debugEl) debugEl.innerText = JSON.stringify(data, null, 2);
-    }
   } catch (err) {
     console.error(err);
     const container = document.getElementById(containerId);
@@ -124,18 +121,21 @@ async function fetchAndDisplay(url, containerId, updateId, debugId) {
   }
 }
 
-// --- INIT ---
-fetchNewsTicker('news-ticker');
-fetchAndDisplay(
-  'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:43135:',
-  'rer-a-passages', 'rer-a-update', 'rer-a-debug'
-);
-fetchAndDisplay(
-  'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463641:',
-  'bus-77-passages', 'bus-77-update', 'bus-77-debug'
-);
-fetchAndDisplay(
-  'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463644:',
-  'bus-201-passages', 'bus-201-update', 'bus-201-debug'
-);
-// (pas de refreshAll auto dans la version debug - ajoute-le si besoin !)
+// --- REFRESH AUTO ---
+function refreshAll() {
+  fetchNewsTicker('news-ticker');
+  fetchAndDisplay(
+    'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:43135:',
+    'rer-a-passages', 'rer-a-update'
+  );
+  fetchAndDisplay(
+    'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463641:',
+    'bus-77-passages', 'bus-77-update'
+  );
+  fetchAndDisplay(
+    'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463644:',
+    'bus-201-passages', 'bus-201-update'
+  );
+}
+refreshAll();
+setInterval(refreshAll, 60000);
