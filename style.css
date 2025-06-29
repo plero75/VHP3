@@ -2,25 +2,63 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
-  background: #111;
+  background: #101924; /* fond moderne, bleu nuit */
   color: #eee;
-  font-family: "Segoe UI", sans-serif;
+  font-family: 'Segoe UI', sans-serif;
 }
-html, body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
+
+.dashboard-grid {
+  display: grid;
+  grid-template-areas:
+    "news news news"
+    "rer bus77 bus201"
+    "meteo velib1 velib2";
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: auto 1fr 1fr;
+  gap: 12px;
+  height: 100vh;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.news-ticker {
+  grid-area: news;
+  white-space: nowrap;
   overflow: hidden;
-  background: #111;
-  color: #eee;
-  font-family: "Segoe UI", sans-serif;
+  background: #1e293b;
+  color: #0ff;
+  padding: 10px;
+  font-size: 1rem;
+  border-radius: 8px;
+  animation: news-scroll 20s linear infinite;
 }
+
+@keyframes news-scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+
+.block {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  min-width: 0; /* evite le débordement */
+}
+
+.block h2 {
+  margin: 0 0 10px;
+  font-size: 1.2rem;
+  color: #00e0ff;
+  border-bottom: 1px solid #00e0ff;
+  padding-bottom: 5px;
+}
+
 .direction-block {
-  background: #002244;
-  margin-bottom: 12px;
-  padding: 8px;
-  border-radius: 6px;
+  background: #0f172a;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 8px;
 }
 
 .direction-title {
@@ -31,48 +69,6 @@ html, body {
   padding-bottom: 4px;
 }
 
-.dashboard-grid {
-  display: grid;
-  grid-template-areas:
-    "news news news"
-    "rer bus77 bus201"
-    "meteo velib1 velib2";
-  grid-template-columns: 1fr 1fr 1fr;
-  grid-template-rows: auto 1fr 0.8fr; /* plus équilibré en bas */
-  gap: 8px;
-  height: 100vh;
-  padding: 8px;
-  box-sizing: border-box;
-}
-
-.news-ticker {
-  grid-area: news;
-  white-space: nowrap;
-  overflow: hidden;
-  background: #222;
-  color: #fff;
-  padding: 8px;
-  font-size: 1rem;
-  animation: news-scroll 25s linear infinite;
-}
-
-@keyframes news-scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-
-.block {
-  background: #003366;
-  border-radius: 8px;
-  padding: 10px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.block h2 {
-  margin: 0 0 8px;
-  font-size: 1.2rem;
-  color: #ff0;
-}
-
 .passage-block {
   flex: 1;
   font-size: 0.95rem;
@@ -81,9 +77,18 @@ html, body {
 }
 
 .passage-block strong {
-  font-family: monospace; /* look "horaire gare" */
+  font-family: monospace;
   font-size: 1.2rem;
   color: #ff0;
+}
+
+.alert {
+  background: #f87171;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-bottom: 5px;
+  font-size: 0.95rem;
 }
 
 .stops-list {
@@ -93,131 +98,7 @@ html, body {
   margin-left: 20px;
 }
 
-.alert {
-  background: #ff4444;
-  color: #fff;
-  padding: 5px 10px;
-  border-left: 4px solid #f00;
-  margin-bottom: 5px;
-  font-size: 0.9rem;
-  border-radius: 4px;
-}
-
-/* badges pour lignes */
-.line-badge {
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-left: 8px;
-  font-weight: bold;
-  color: #fff;
-}
-
-.line-rer-a { background: red; }
-.line-bus-77 { background: green; }
-.line-bus-201 { background: blue; }
-
-/* Adaptation responsive pour petits écrans */
-@media (max-width: 900px) {
-  .dashboard-grid {
-    grid-template-areas:
-      "news"
-      "rer"
-      "bus77"
-      "bus201"
-      "meteo"
-      "velib1"
-      "velib2";
-    grid-template-columns: 1fr;
-    grid-template-rows: repeat(7, auto);
-  }
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-areas:
-    "news news news"
-    "rer bus77 bus201"
-    "meteo velib1 velib2";
-  grid-template-columns: 1fr 1fr 1fr;
-  grid-template-rows: auto 1fr 0.8fr; /* plus équilibré en bas */
-  gap: 8px;
-  height: 100vh;
-  padding: 8px;
-  box-sizing: border-box;
-}
-
-.news-ticker {
-  grid-area: news;
-  white-space: nowrap;
-  overflow: hidden;
-  background: #222;
-  color: #fff;
-  padding: 8px;
-  font-size: 1rem;
-  animation: news-scroll 25s linear infinite;
-}
-
-@keyframes news-scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-
-.block {
-  background: #003366;
-  border-radius: 8px;
-  padding: 10px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.block h2 {
-  margin: 0 0 8px;
-  font-size: 1.2rem;
-  color: #ff0;
-}
-
-.passage-block {
-  flex: 1;
-  font-size: 0.95rem;
-  overflow-y: auto;
-  margin-bottom: 6px;
-}
-
-.passage-block strong {
-  font-family: monospace; /* look "horaire gare" */
-  font-size: 1.2rem;
-  color: #ff0;
-}
-
-.stops-list {
-  font-size: 0.8rem;
-  color: #ccc;
-  word-wrap: break-word;
-  margin-left: 20px;
-}
-
-.alert {
-  background: #ff4444;
-  color: #fff;
-  padding: 5px 10px;
-  border-left: 4px solid #f00;
-  margin-bottom: 5px;
-  font-size: 0.9rem;
-  border-radius: 4px;
-}
-
-/* badges pour lignes */
-.line-badge {
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-left: 8px;
-  font-weight: bold;
-  color: #fff;
-}
-
-.line-rer-a { background: red; }
-.line-bus-77 { background: green; }
-.line-bus-201 { background: blue; }
-
-/* Adaptation responsive pour petits écrans */
+/* Responsive portrait / petit écran */
 @media (max-width: 900px) {
   .dashboard-grid {
     grid-template-areas:
