@@ -1,3 +1,4 @@
+
 const CORS_PROXY = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";
 
 function updateDateTime() {
@@ -47,8 +48,27 @@ function showNewsItem(containerId) {
   setTimeout(() => showNewsItem(containerId), 4000); // change toutes les 4 sec
 }
 
+// -- Partie passages :
 
-async function fetchAndDisplay(url, containerId, updateId) {
+function formatAttente(expected, now = new Date()) {
+  const diffMs = expected - now;
+  if (diffMs < 0) return ""; // passé
+  if (diffMs < 90000) return '<span class="imminent">imminent</span>';
+  const min = Math.floor(diffMs / 60000);
+  return `dans ${min} min`;
+}
+
+// Horaires théoriques RER A, exemple (valeurs à adapter !)
+const RER_A_HORAIRES = ["05:12", "05:24", "05:35", "05:49", "06:01", "06:13", "23:22", "23:40", "23:55"];
+const RER_A_GARES = [
+  "Saint-Germain-en-Laye", "Le Vésinet–Le Pecq", "Le Vésinet–Centre", "Chatou–Croissy", "Rueil-Malmaison",
+  "Nanterre-Ville", "Nanterre-Université", "Nanterre–Préfecture", "La Défense", "Charles de Gaulle–Étoile",
+  "Auber", "Châtelet–Les Halles", "Gare de Lyon", "Nation", "Vincennes", "Fontenay-sous-Bois", "Nogent-sur-Marne",
+  "Joinville-le-Pont", "Saint-Maur–Créteil", "Le Parc de Saint-Maur", "Champigny", "La Varenne–Chennevières",
+  "Sucy–Bonneuil", "Boissy-Saint-Léger"
+];
+
+async function fetchAndDisplay(url, containerId, updateId, premierId, dernierId, garesId) {
   try {
     const response = await fetch(CORS_PROXY + encodeURIComponent(url));
     if (!response.ok) throw new Error(`HTTP error ${response.status}`);
@@ -61,40 +81,35 @@ async function fetchAndDisplay(url, containerId, updateId) {
     if (visits.length === 0) { container.innerHTML = '🛑 Aucun passage'; return; }
 
     const now = new Date();
-    const directions = {};
-    visits.forEach(v => {
+    visits.slice(0, 5).forEach(v => {
       const mvj = v.MonitoredVehicleJourney;
-      const dirName = mvj.DirectionName?.[0]?.value || "Sens inconnu";
-      if (!directions[dirName]) directions[dirName] = [];
-      directions[dirName].push(v);
+      const expected = new Date(mvj.MonitoredCall.ExpectedDepartureTime);
+      const aimed = mvj.MonitoredCall.AimedDepartureTime ? new Date(mvj.MonitoredCall.AimedDepartureTime) : expected;
+      const attenteTxt = formatAttente(expected, now);
+      container.innerHTML += `<div class="passage-block">
+        <strong>🕐 ${expected.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</strong>
+        <span> (${attenteTxt})</span>
+        ➔ ${mvj.DestinationName?.[0]?.value || 'N/A'}
+      </div>`;
     });
 
-    for (const [dir, dirVisits] of Object.entries(directions)) {
-      container.innerHTML += `
-        <div class="direction-block">
-          <h3 class="direction-title">➡️ ${dir}</h3>
-          ${dirVisits.slice(0, 4).map(v => {
-            const mvj = v.MonitoredVehicleJourney;
-            const expected = new Date(mvj.MonitoredCall.ExpectedDepartureTime);
-            const aimed = mvj.MonitoredCall.AimedDepartureTime ? new Date(mvj.MonitoredCall.AimedDepartureTime) : expected;
-            const delayMin = Math.round((expected - aimed) / 60000);
-            return `
-              <div class="passage-block">
-                ${delayMin > 0 ? `
-                  <span style="text-decoration:line-through; color:#888;">${aimed.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>
-                  <strong style="color:yellow; margin-left:5px;">${expected.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</strong>
-                  <span style="color:#f66; margin-left:5px;">(+${delayMin} min)</span>
-                ` : `
-                  <strong>🕐 ${expected.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</strong>
-                `}
-                ➔ ${mvj.DestinationName?.[0]?.value || 'N/A'}
-              </div>`;
-          }).join('')}
-        </div>`;
+    if (updateId) {
+      const updateEl = document.getElementById(updateId);
+      if (updateEl) updateEl.textContent = `Mise à jour : ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
     }
-
-    const updateEl = document.getElementById(updateId);
-    if (updateEl) updateEl.textContent = `Mise à jour : ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+    // Premier/dernier horaires (exemple statique pour RER A)
+    if (premierId) {
+      const premierEl = document.getElementById(premierId);
+      if (premierEl) premierEl.innerHTML = 'Premier départ : <strong>' + (RER_A_HORAIRES[0] || '--:--') + '</strong>';
+    }
+    if (dernierId) {
+      const dernierEl = document.getElementById(dernierId);
+      if (dernierEl) dernierEl.innerHTML = 'Dernier départ : <strong>' + (RER_A_HORAIRES[RER_A_HORAIRES.length-1] || '--:--') + '</strong>';
+    }
+    if (garesId) {
+      const ul = document.getElementById(garesId);
+      if (ul) ul.innerHTML = RER_A_GARES.map(station => `<li>${station}</li>`).join('');
+    }
   } catch (err) {
     console.error(err);
     const container = document.getElementById(containerId);
@@ -131,6 +146,14 @@ async function fetchVelibDirect(url, containerId) {
     const stations = await response.json();
     const s = stations[0];
     document.getElementById(containerId).innerHTML = `📍 ${s.name}<br>🚲 ${s.numbikesavailable} mécaniques<br>🔌 ${s.ebike} électriques<br>🅿️ ${s.numdocksavailable} bornes`;
+  // Ajout heure de mise à jour
+  const now = new Date();
+  if(containerId === 'velib-vincennes-data') {
+    document.getElementById('velib-vincennes-update').textContent = 'Mise à jour : ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  }
+  if(containerId === 'velib-breuil-data') {
+    document.getElementById('velib-breuil-update').textContent = 'Mise à jour : ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  }
   } catch (err) { console.error(err); document.getElementById(containerId).innerHTML = '❌ Erreur Vélib’'; }
 }
 
@@ -138,9 +161,18 @@ function refreshAll() {
   updateDateTime();
   fetchWeather();
   fetchNewsTicker('news-ticker');
-  fetchAndDisplay('https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:43135:', 'rer-a-passages', 'rer-a-update');
-  fetchAndDisplay('https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463641:', 'bus-77-passages', 'bus-77-update');
-  fetchAndDisplay('https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463644:', 'bus-201-passages', 'bus-201-update');
+  fetchAndDisplay(
+    'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:43135:',
+    'rer-a-passages', 'rer-a-update', 'rer-a-premier', 'rer-a-dernier', 'rer-a-gares'
+  );
+  fetchAndDisplay(
+    'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463641:',
+    'bus-77-passages', 'bus-77-update', 'bus-77-premier', 'bus-77-dernier'
+  );
+  fetchAndDisplay(
+    'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463644:',
+    'bus-201-passages', 'bus-201-update', 'bus-201-premier', 'bus-201-dernier'
+  );
   fetchTrafficAlerts('STIF:Line::C01742:', 'rer-a-alerts');
   fetchTrafficAlerts('STIF:Line::C00777:', 'bus-77-alerts');
   fetchTrafficAlerts('STIF:Line::C00201:', 'bus-201-alerts');
