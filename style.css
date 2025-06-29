@@ -1,80 +1,73 @@
 body {
+  font-family: Arial, sans-serif;
   margin: 0;
-  padding: 0;
-  font-family: sans-serif;
-  background: #1f1f1f;
-  color: #fff;
-  height: 100vh;
-  overflow: hidden;
+  padding: 0 10px;
+  background: #f9f9f9;
+  color: #333;
+  line-height: 1.4;
 }
 
-header {
-  display: flex;
-  align-items: center;
-  background: #111;
-  color: #fff;
-  padding: 0.5rem 1rem;
-  justify-content: space-between;
-}
-
-header img {
-  height: 40px;
-}
-
-.header-center h1 {
-  font-size: 1.5rem;
-  margin: 0;
-}
-
-.alert-banner {
-  background: #c62828;
-  color: white;
+h1 {
   text-align: center;
-  padding: 0.5rem;
-  font-weight: bold;
+  margin: 20px 0;
 }
 
-main {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(3, 1fr);
-  gap: 0.5rem;
-  padding: 0.5rem;
-  height: calc(100vh - 100px); /* header + alert */
-  box-sizing: border-box;
-}
-
-.block {
+.section {
+  background: #fff;
   border-radius: 8px;
-  padding: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  padding: 20px;
+  margin-bottom: 20px;
 }
 
-.rer-block { background: #b71c1c; }
-.bus77-block { background: #1565c0; }
-.bus201-block { background: #2e7d32; }
-.velib-block { background: #4e342e; }
-.weather-block { background: #37474f; }
-.traffic-block { background: #263238; }
-
-.block h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1.4rem;
-  border-bottom: 2px solid rgba(255,255,255,0.3);
-  padding-bottom: 0.3rem;
-}
-
-.passage, .alert, .block p {
+.section h2 {
+  margin-top: 0;
   font-size: 1.2rem;
-  margin: 0.2rem 0;
 }
 
-.passage strong {
-  color: #fff;
+.passage {
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
 }
 
-.passage .imminent { color: #4caf50; }
-.passage .delayed { color: #fbc02d; }
-.passage .cancelled { color: #e53935; }
+.alert {
+  background: #ffe0e0;
+  padding: 5px 10px;
+  border-left: 4px solid red;
+  margin-bottom: 5px;
+  font-size: 0.95rem;
+}
+
+.stops-scroll {
+  white-space: nowrap;
+  overflow: hidden;
+  display: inline-block;
+  animation: scroll-left 15s linear infinite;
+  font-size: 0.9rem;
+  margin-top: 10px;
+}
+
+.stops-scroll span {
+  margin-right: 8px;
+}
+
+@keyframes scroll-left {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* Adaptations mobiles */
+@media (max-width: 600px) {
+  .section {
+    padding: 15px;
+  }
+  .section h2 {
+    font-size: 1rem;
+  }
+  .passage {
+    font-size: 0.9rem;
+  }
+  .alert {
+    font-size: 0.85rem;
+  }
+}
