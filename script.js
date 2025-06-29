@@ -78,12 +78,76 @@ const GARES_PARIS = [
   "Paris", "Châtelet", "Gare de Lyon", "Auber", "Nation", "Charles de Gaulle", "La Défense"
 ];
 
+
 function highlightGare(station, actuelle) {
   if (GARES_PARIS.some(kw => station.toLowerCase().includes(kw.toLowerCase())))
     return `<span class="gare-paris">${station}</span>`;
-  if (station.toLowerCase() === actuelle.toLowerCase())
-    return `<span class="gare-actuelle">${station}</span>`;
   return station;
+}
+
+async function fetchAndDisplay(url, containerId, updateId) {
+  try {
+    const response = await fetch(CORS_PROXY + encodeURIComponent(url));
+    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+    const data = await response.json();
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    const visits = data.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || [];
+    if (visits.length === 0) { container.innerHTML = '🛑 Aucun passage'; return; }
+
+    // Regrouper par destination
+    const groups = {};
+    visits.forEach(v => {
+      const dest = v.MonitoredVehicleJourney.DestinationName?.[0]?.value || 'Inconnu';
+      if (!groups[dest]) groups[dest] = [];
+      groups[dest].push(v);
+    });
+
+    Object.entries(groups).forEach(([dest, group]) => {
+      group.sort((a, b) => new Date(a.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime) - new Date(b.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime));
+      const premier = group[0];
+      const dernier = group[group.length - 1];
+
+      container.innerHTML += `<div class="sens-block"><div class="sens-title">Vers <b>${dest}</b></div>`;
+      group.forEach((v, idx) => {
+        const mvj = v.MonitoredVehicleJourney;
+        const expected = new Date(mvj.MonitoredCall.ExpectedDepartureTime);
+        const attenteTxt = formatAttente(expected, new Date());
+        const isDernier = v === dernier;
+
+        // Gares desservies à venir : à partir de l'arrêt actuel (non inclus)
+        const onward = mvj.OnwardCalls?.OnwardCall?.map(call => call.StopPointName?.[0]?.value).filter(Boolean) || [];
+        const arretActuel = mvj.MonitoredCall.StopPointName?.[0]?.value || "";
+        let startIdx = onward.findIndex(st => st.toLowerCase() === arretActuel.toLowerCase());
+        let nextGares = (startIdx >= 0) ? onward.slice(startIdx + 1) : onward;
+        let garesHtml = nextGares.length ?
+          `<div class="gares-defile">` + nextGares.map(station => highlightGare(station, arretActuel)).join(' <span>|</span> ') + '</div>'
+          : '';
+
+        container.innerHTML += `
+          <div class="passage-block">
+            <strong>🕐 ${expected.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</strong>
+            <span> (${attenteTxt})</span>
+            ${isDernier ? '<span class="dernier-train">DERNIER AVANT FIN SERVICE</span>' : ''}
+            ${garesHtml}
+          </div>
+        `;
+      });
+      container.innerHTML += `<div class="premier-dernier">
+        Premier départ : <b>${new Date(premier.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</b> /
+        Dernier départ : <b>${new Date(dernier.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</b>
+        </div></div>`;
+    });
+
+    if (updateId) {
+      const updateEl = document.getElementById(updateId);
+      if (updateEl) updateEl.textContent = "Mise à jour : " + (new Date()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+  } catch (err) {
+    console.error(err);
+    const container = document.getElementById(containerId);
+    if (container) container.innerHTML = '❌ Erreur chargement passages';
+  }
 }
 
 async function fetchAndDisplay(url, containerId, updateId) {
