@@ -3,29 +3,49 @@ const CORS_PROXY = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";
 async function fetchAndDisplay(url, containerId, updateId) {
   try {
     const response = await fetch(CORS_PROXY + encodeURIComponent(url));
-    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-    const data = await response.json();
+
+    if (!response.ok) {
+      console.error(`HTTP error ${response.status}`);
+      const errorText = await response.text();
+      console.error("Réponse brute:", errorText);
+      const container = document.getElementById(containerId);
+      if (container) container.innerHTML = `<p>❌ Erreur HTTP ${response.status}</p>`;
+      return;
+    }
+
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      console.error("Erreur lors du parsing JSON:", jsonError);
+      const errorText = await response.text();
+      console.error("Réponse non JSON:", errorText);
+      const container = document.getElementById(containerId);
+      if (container) container.innerHTML = `<p>❌ Réponse invalide reçue du serveur</p>`;
+      return;
+    }
 
     const container = document.getElementById(containerId);
+    if (!container) {
+      console.warn(`Container ID '${containerId}' introuvable dans le DOM`);
+      return;
+    }
     container.innerHTML = '';
 
     const visits = data.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || [];
 
-    // Déterminer stopId selon le containerId
     let stopId;
     if (containerId.includes('rer-a')) stopId = 'STIF:StopArea:SP:43135:';
     else if (containerId.includes('bus-77')) stopId = 'STIF:StopArea:SP:463641:';
     else if (containerId.includes('bus-201')) stopId = 'STIF:StopArea:SP:463644:';
 
-    // ➔ Nouveau test pour fallback
     if (visits.length === 0) {
       container.innerHTML = '<p>🛑 Aucun passage temps réel, chargement des horaires théoriques...</p>';
       await displayFallbackSchedule(stopId, containerId);
-      return; // Arrêter ici car pas de temps réel
+      return;
     }
 
     const now = new Date();
-
     const directions = {};
     visits.forEach(v => {
       const mvj = v.MonitoredVehicleJourney;
@@ -63,12 +83,17 @@ async function fetchAndDisplay(url, containerId, updateId) {
       });
     }
 
-    document.getElementById(updateId).textContent = `Mise à jour : ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+    const updateEl = document.getElementById(updateId);
+    if (updateEl) updateEl.textContent = `Mise à jour : ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+    else console.warn(`Update ID '${updateId}' introuvable dans le DOM`);
+
   } catch (error) {
-    console.error(error);
-    document.getElementById(containerId).innerHTML = '<p>❌ Erreur de chargement</p>';
+    console.error("Erreur JS:", error);
+    const container = document.getElementById(containerId);
+    if (container) container.innerHTML = '<p>❌ Erreur de chargement</p>';
   }
 }
+
 
 async function fetchTrafficAlerts(lineRef, containerId) {
   const url = `https://prim.iledefrance-mobilites.fr/marketplace/general-message?LineRef=${encodeURIComponent(lineRef)}`;
