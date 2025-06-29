@@ -2,13 +2,16 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Dashboard Transport Temps Réel</title>
+  <title>Dashboard Transports Île-de-France</title>
   <style>
-    body { font-family: Arial, sans-serif; }
-    .section { margin-bottom: 2rem; }
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; color: #333; }
+    .section { background: #fff; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
+    .section h2 { margin-top: 0; }
     .passage { margin-bottom: 0.5rem; }
-    .alert { color: red; }
-    .stops span { margin-right: 5px; }
+    .alert { background: #ffe0e0; padding: 5px 10px; border-left: 4px solid red; margin-bottom: 5px; }
+    .stops-scroll { white-space: nowrap; overflow: hidden; display: inline-block; animation: scroll-left 15s linear infinite; font-size: 0.9rem; margin-top: 10px; }
+    .stops-scroll span { margin-right: 8px; }
+    @keyframes scroll-left { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
   </style>
 </head>
 <body>
@@ -19,7 +22,6 @@
     <div id="rer-a-passages"></div>
     <div id="rer-a-update"></div>
     <div id="rer-a-alerts"></div>
-    <div id="rer-a-firstlast"></div>
     <div id="rer-a-stops"></div>
   </div>
 
@@ -28,7 +30,6 @@
     <div id="bus-77-passages"></div>
     <div id="bus-77-update"></div>
     <div id="bus-77-alerts"></div>
-    <div id="bus-77-firstlast"></div>
     <div id="bus-77-stops"></div>
   </div>
 
@@ -37,28 +38,7 @@
     <div id="bus-201-passages"></div>
     <div id="bus-201-update"></div>
     <div id="bus-201-alerts"></div>
-    <div id="bus-201-firstlast"></div>
     <div id="bus-201-stops"></div>
-  </div>
-
-  <div class="section">
-    <h2>🚲 Vélib’ Vincennes</h2>
-    <div id="velib-vincennes-data"></div>
-  </div>
-
-  <div class="section">
-    <h2>🚲 Vélib’ École du Breuil</h2>
-    <div id="velib-breuil-data"></div>
-  </div>
-
-  <div class="section">
-    <h2>☁️ Météo</h2>
-    <div id="weather-data"></div>
-  </div>
-
-  <div class="section">
-    <h2>🚗 Circulation routière</h2>
-    <div id="traffic-data"></div>
   </div>
 
   <script src="script.js"></script>
