@@ -5,84 +5,99 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Transports Île-de-France</title>
   <style>
-    body {
-      font-family: Arial, sans-serif; margin: 0; padding: 0 10px;
-      background: #111; color: #eee; line-height: 1.4;
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden; /* Pas de scroll */
+      background: #111;
+      color: #eee;
+      font-family: Arial, sans-serif;
     }
-    h1 { text-align: center; margin: 20px 0; }
+    .dashboard-grid {
+      display: grid;
+      grid-template-areas:
+        "news news news"
+        "rer bus77 bus201"
+        "meteo velib1 velib2";
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: auto 1fr 1fr;
+      gap: 8px;
+      height: 100vh;
+      padding: 8px;
+      box-sizing: border-box;
+    }
     .news-ticker {
-      white-space: nowrap; overflow: hidden; background: #222;
-      color: #fff; padding: 8px; font-size: 0.95rem;
-      animation: news-scroll 25s linear infinite; margin-bottom: 20px;
+      grid-area: news;
+      white-space: nowrap;
+      overflow: hidden;
+      background: #222;
+      color: #fff;
+      padding: 8px;
+      font-size: 0.95rem;
+      animation: news-scroll 25s linear infinite;
     }
     @keyframes news-scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-    .section {
-      background: #003366; border-radius: 8px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.4);
-      padding: 15px; margin-bottom: 20px;
+    .block {
+      background: #003366;
+      border-radius: 8px;
+      padding: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
-    .section h2 { margin-top: 0; font-size: 1.2rem; color: #ff0; }
-    .passage-block {
-      background: #004080; margin-bottom: 12px; padding: 10px;
-      border-radius: 5px; font-family: sans-serif;
-    }
-    .passage-header { display: flex; align-items: center; justify-content: space-between; }
-    .mission-code { font-size: 0.8rem; color: #ccc; }
-    .mission-code .operator { font-weight: bold; }
-    .mission-code .mission { font-size: 0.7rem; }
-    .main-info { display: flex; align-items: center; }
-    .main-info .time { font-size: 1.5rem; color: yellow; margin-right: 10px; font-weight: bold; }
-    .main-info .line-badge { background: red; color: white; padding: 2px 6px; border-radius: 4px; margin-right: 10px; font-weight: bold; }
-    .main-info .destination { font-size: 1.2rem; font-weight: bold; }
-    .stops-list { margin-top: 5px; font-size: 0.9rem; color: #ddd; }
-    .alert { background: #ffe0e0; color: #000; padding: 5px 10px; border-left: 4px solid red; margin-bottom: 5px; font-size: 0.95rem; }
+    .block h2 { margin: 0 0 8px; font-size: 1.1rem; color: #ff0; }
+    .passage-block { flex: 1; font-size: 0.9rem; overflow-y: auto; }
+    .stops-list { font-size: 0.7rem; color: #ccc; word-wrap: break-word; }
+    .alert { background: #ffe0e0; color: #000; padding: 5px 10px; border-left: 4px solid red; margin-bottom: 5px; font-size: 0.9rem; }
+    #rer-a-section { grid-area: rer; }
+    #bus-77-section { grid-area: bus77; }
+    #bus-201-section { grid-area: bus201; }
+    #weather-block { grid-area: meteo; }
+    #velib-vincennes-block { grid-area: velib1; }
+    #velib-breuil-block { grid-area: velib2; }
   </style>
 </head>
 <body>
-  <h1>🚌 Dashboard Transports Temps Réel</h1>
-  <div class="news-ticker" id="news-ticker"></div>
+  <div class="dashboard-grid">
+    <div class="news-ticker" id="news-ticker"></div>
 
- <div class="dashboard-grid">
-  <div class="news-ticker" id="news-ticker"></div>
+    <div class="block" id="rer-a-section">
+      <h2>🚆 RER A</h2>
+      <div id="rer-a-passages"></div>
+      <div id="rer-a-update"></div>
+      <div id="rer-a-alerts"></div>
+    </div>
 
-  <div class="block" id="rer-a-section">
-    <h2>🚆 RER A</h2>
-    <div id="rer-a-passages"></div>
-    <div id="rer-a-update"></div>
-    <div id="rer-a-alerts"></div>
+    <div class="block" id="bus-77-section">
+      <h2>🚌 Bus 77</h2>
+      <div id="bus-77-passages"></div>
+      <div id="bus-77-update"></div>
+      <div id="bus-77-alerts"></div>
+    </div>
+
+    <div class="block" id="bus-201-section">
+      <h2>🚌 Bus 201</h2>
+      <div id="bus-201-passages"></div>
+      <div id="bus-201-update"></div>
+      <div id="bus-201-alerts"></div>
+    </div>
+
+    <div class="block" id="weather-block">
+      <h2>☁️ Météo locale</h2>
+      <div id="weather-data"></div>
+    </div>
+
+    <div class="block" id="velib-vincennes-block">
+      <h2>🚲 Vélib’ Vincennes</h2>
+      <div id="velib-vincennes-data"></div>
+    </div>
+
+    <div class="block" id="velib-breuil-block">
+      <h2>🚲 Vélib’ École du Breuil</h2>
+      <div id="velib-breuil-data"></div>
+    </div>
   </div>
-
-  <div class="block" id="bus-77-section">
-    <h2>🚌 Bus 77</h2>
-    <div id="bus-77-passages"></div>
-    <div id="bus-77-update"></div>
-    <div id="bus-77-alerts"></div>
-  </div>
-
-  <div class="block" id="bus-201-section">
-    <h2>🚌 Bus 201</h2>
-    <div id="bus-201-passages"></div>
-    <div id="bus-201-update"></div>
-    <div id="bus-201-alerts"></div>
-  </div>
-
-  <div class="block">
-    <h2>☁️ Météo locale</h2>
-    <div id="weather-data"></div>
-  </div>
-
-  <div class="block">
-    <h2>🚲 Vélib’ Vincennes</h2>
-    <div id="velib-vincennes-data"></div>
-  </div>
-
-  <div class="block">
-    <h2>🚲 Vélib’ École du Breuil</h2>
-    <div id="velib-breuil-data"></div>
-  </div>
-</div>
-
-  uil</h2><div id="velib-breuil-data"></div></div>
 
   <script src="script.js"></script>
 </body>
