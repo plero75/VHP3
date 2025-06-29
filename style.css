@@ -125,4 +125,47 @@ h1 {
   font-size: 0.9rem;
   color: #ddd;
 }
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Empêche le scroll */
+  background: #111;
+  color: #eee;
+  font-family: Arial, sans-serif;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-areas:
+    "news news news"
+    "rer bus77 bus201"
+    "meteo velib1 velib2";
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: auto 1fr 1fr;
+  gap: 8px;
+  height: 100vh; /* Remplit tout l'écran */
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.news-ticker { grid-area: news; background: #222; white-space: nowrap; overflow: hidden; animation: news-scroll 25s linear infinite; padding: 5px; font-size: 1rem; }
+#rer-a-section { grid-area: rer; }
+#bus-77-section { grid-area: bus77; }
+#bus-201-section { grid-area: bus201; }
+#weather-data { grid-area: meteo; }
+#velib-vincennes-data { grid-area: velib1; }
+#velib-breuil-data { grid-area: velib2; }
+
+.block {
+  background: #003366; border-radius: 8px; padding: 8px; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+
+.block h2 { margin: 0 0 8px; font-size: 1.1rem; color: #ff0; }
+.passage-block { flex: 1; font-size: 0.9rem; overflow-y: auto; }
+.stops-list { font-size: 0.7rem; color: #ccc; word-wrap: break-word; }
+
+/* Défilement ticker */
+@keyframes news-scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
 
