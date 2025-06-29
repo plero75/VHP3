@@ -1,7 +1,15 @@
-
 const CORS_PROXY = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";
 
-// --- BANDEAU ACTU ---
+// --- Horloge ---
+function updateDateTime() {
+  const now = new Date();
+  document.getElementById('datetime').textContent = now.toLocaleString('fr-FR', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
+// --- Actus défilantes ---
 let newsItems = [];
 let currentNewsIndex = 0;
 
@@ -19,7 +27,6 @@ async function fetchNewsTicker(containerId) {
     currentNewsIndex = 0;
     showNewsItem(containerId);
   } catch (err) {
-    console.error(err);
     document.getElementById(containerId).textContent = '❌ Erreur actus';
   }
 }
@@ -28,19 +35,19 @@ function showNewsItem(containerId) {
   if (newsItems.length === 0) return;
   const item = newsItems[currentNewsIndex];
   const desc = item.description ? item.description.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/ +/g, ' ').trim() : '';
-  const shortDesc = desc.length > 200 ? desc.slice(0,197).replace(/ [^ ]*$/, '') + "…" : desc;
+  const shortDesc = desc.length > 220 ? desc.slice(0,217).replace(/ [^ ]*$/, '') + "…" : desc;
   document.getElementById(containerId).innerHTML = `<div class="news-item">
     📰 <b>${item.title}</b>
     <div class="news-desc">${shortDesc}</div>
   </div>`;
   currentNewsIndex = (currentNewsIndex + 1) % newsItems.length;
-  setTimeout(() => showNewsItem(containerId), 7000);
+  setTimeout(() => showNewsItem(containerId), 9000);
 }
 
-// --- TRANSPORT DYNAMIQUE ---
+// --- Transports (RER/Bus) ---
 function formatAttente(expected, now = new Date()) {
   const diffMs = expected - now;
-  if (diffMs < 0) return ""; // passé
+  if (diffMs < 0) return "";
   if (diffMs < 90000) return '<span class="imminent">imminent</span>';
   const min = Math.floor(diffMs / 60000);
   return `dans ${min} min`;
@@ -64,9 +71,30 @@ async function fetchAndDisplay(url, containerId, updateId) {
     const container = document.getElementById(containerId);
     container.innerHTML = '';
     const visits = data.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || [];
-    if (visits.length === 0) { container.innerHTML = '🛑 Aucun passage'; return; }
-
-    // Regrouper par destination
+    const now = new Date();
+    if (visits.length === 0 ||
+      !visits.some(v => new Date(v.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime) > now)
+    ) {
+      // Service terminé
+      let prochain = null;
+      for (const v of visits) {
+        const expected = new Date(v.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime);
+        if (expected > now) { prochain = expected; break; }
+      }
+      let msg = `<div class="aucun-passage">
+        <span class="badge-termine">🚫 Service terminé</span><br>`;
+      if (prochain) {
+        msg += `<span class="prochain-passage">🕐 Prochain passage à <b>${prochain.toLocaleDateString('fr-FR', {weekday:'long', day:'2-digit', month:'long'})} ${prochain.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</b></span>`;
+      }
+      msg += '</div>';
+      container.innerHTML = msg;
+      if (updateId) {
+        const updateEl = document.getElementById(updateId);
+        if (updateEl) updateEl.textContent = "Mise à jour : " + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      }
+      return;
+    }
+    // Sinon, affichage normal
     const groups = {};
     visits.forEach(v => {
       const dest = v.MonitoredVehicleJourney.DestinationName?.[0]?.value || 'Inconnu';
@@ -78,15 +106,12 @@ async function fetchAndDisplay(url, containerId, updateId) {
       group.sort((a, b) => new Date(a.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime) - new Date(b.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime));
       const premier = group[0];
       const dernier = group[group.length - 1];
-
       container.innerHTML += `<div class="sens-block"><div class="sens-title">Vers <b>${dest}</b></div>`;
       group.forEach((v, idx) => {
         const mvj = v.MonitoredVehicleJourney;
         const expected = new Date(mvj.MonitoredCall.ExpectedDepartureTime);
-        const attenteTxt = formatAttente(expected, new Date());
+        const attenteTxt = formatAttente(expected, now);
         const isDernier = v === dernier;
-
-        // Prochaines gares (après arrêt actuel)
         const onward = mvj.OnwardCalls?.OnwardCall?.map(call => call.StopPointName?.[0]?.value).filter(Boolean) || [];
         const arretActuel = mvj.MonitoredCall.StopPointName?.[0]?.value || "";
         let startIdx = onward.findIndex(st => st.toLowerCase() === arretActuel.toLowerCase());
@@ -94,7 +119,6 @@ async function fetchAndDisplay(url, containerId, updateId) {
         let garesHtml = nextGares.length ?
           `<div class="gares-defile">` + nextGares.map(station => highlightGare(station)).join(' <span>|</span> ') + '</div>'
           : '';
-
         container.innerHTML += `
           <div class="passage-block">
             <strong>🕐 ${expected.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</strong>
@@ -112,30 +136,49 @@ async function fetchAndDisplay(url, containerId, updateId) {
 
     if (updateId) {
       const updateEl = document.getElementById(updateId);
-      if (updateEl) updateEl.textContent = "Mise à jour : " + (new Date()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      if (updateEl) updateEl.textContent = "Mise à jour : " + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     }
   } catch (err) {
-    console.error(err);
     const container = document.getElementById(containerId);
     if (container) container.innerHTML = '❌ Erreur chargement passages';
   }
 }
 
-// --- REFRESH AUTO ---
-function refreshAll() {
-  fetchNewsTicker('news-ticker');
-  fetchAndDisplay(
-    'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:43135:',
-    'rer-a-passages', 'rer-a-update'
-  );
-  fetchAndDisplay(
-    'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463641:',
-    'bus-77-passages', 'bus-77-update'
-  );
-  fetchAndDisplay(
-    'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463644:',
-    'bus-201-passages', 'bus-201-update'
-  );
+// --- Trafic (Bison Futé IDF, RSS) ---
+async function fetchTraffic() {
+  const url = 'https://api.rss2json.com/v1/api.json?rss_url=https://www.bison-fute.gouv.fr/donnees-cles/rss/idf.xml';
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+    const data = await response.json();
+    const summaryEl = document.getElementById('traffic-summary');
+    summaryEl.innerHTML = '';
+    if (!data.items || !data.items.length) {
+      summaryEl.innerHTML = '✅ Trafic fluide';
+    } else {
+      data.items.slice(0, 2).forEach(item => {
+        const txt = item.title + (item.description ? ' – ' + item.description.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ') : '');
+        summaryEl.innerHTML += `<div class="traffic-incident">🚧 ${txt.slice(0,190)}${txt.length>190?'…':''}</div>`;
+      });
+    }
+    document.getElementById('traffic-update').textContent = "Mise à jour : " + (new Date()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  } catch (err) {
+    document.getElementById('traffic-summary').textContent = '❌ Erreur trafic';
+  }
 }
-refreshAll();
-setInterval(refreshAll, 60000);
+
+// --- Météo (avec icônes PNG météo/IMG) ---
+async function fetchWeather() {
+  try {
+    const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=48.835&longitude=2.423&current_weather=true');
+    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+    const w = (await response.json()).current_weather;
+    document.getElementById('weather-summary').innerHTML =
+      `${weatherIcon(w.weathercode)} 🌡 ${w.temperature}°C • 💨 ${w.windspeed} km/h`;
+    document.getElementById('weather-update').textContent = "Mise à jour : " + (new Date()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  } catch (err) {
+    document.getElementById('weather-summary').textContent = '❌ Erreur météo';
+  }
+}
+function weatherIcon(code) {
+  const knownCodes = [0,1,2,3,45,48,51,53,55,56,57,61,63,65,66,67,71,73,75,77
