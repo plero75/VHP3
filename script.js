@@ -60,7 +60,7 @@ async function fetchAndDisplay(url, containerId, updateId) {
       const filtered = dirVisits.slice(0, 4);
       filtered.forEach(v => {
         const mvj = v.MonitoredVehicleJourney;
-        const aimed = new Date(mvj.MonitoredCall.AimedDepartureTime);
+        const aimed = mvj.MonitoredCall.AimedDepartureTime ? new Date(mvj.MonitoredCall.AimedDepartureTime) : new Date(mvj.MonitoredCall.ExpectedDepartureTime);
         const expected = new Date(mvj.MonitoredCall.ExpectedDepartureTime);
         const delay = Math.round((expected - aimed) / 60000);
         const timeLeft = Math.round((expected - now) / 60000);
