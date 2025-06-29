@@ -132,3 +132,26 @@ html, body {
     grid-template-rows: repeat(5, auto);
   }
 }
+
+
+/* Ajout responsive mobile ++ */
+@media (max-width: 700px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    height: auto;
+  }
+  .block {
+    margin-bottom: 16px;
+    min-width: unset;
+  }
+  html, body {
+    font-size: 16px;
+  }
+}
+/* Contrastes & focus accessibilité */
+.block:focus-within, .block:focus {
+  outline: 3px solid #f3c623 !important;
+}
+/* Debug pour layout */
+.block { outline: 1px dashed #53f !important; }
