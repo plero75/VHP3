@@ -16,6 +16,20 @@ html, body {
   color: #eee;
   font-family: "Segoe UI", sans-serif;
 }
+.direction-block {
+  background: #002244;
+  margin-bottom: 12px;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.direction-title {
+  font-size: 1rem;
+  color: #0ff;
+  margin: 0 0 8px;
+  border-bottom: 1px solid #0ff;
+  padding-bottom: 4px;
+}
 
 .dashboard-grid {
   display: grid;
