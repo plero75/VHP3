@@ -16,11 +16,23 @@ async function fetchAndDisplay(url, containerId, updateId) {
     visits.slice(0, 5).forEach(v => {
       const mvj = v.MonitoredVehicleJourney;
       const expected = new Date(mvj.MonitoredCall.ExpectedDepartureTime);
+      const aimed = mvj.MonitoredCall.AimedDepartureTime ? new Date(mvj.MonitoredCall.AimedDepartureTime) : expected;
+      const delayMin = Math.round((expected - aimed) / 60000);
       const onwardCalls = mvj.OnwardCalls?.OnwardCall || [];
+
       container.innerHTML += `
         <div class="passage-block">
-          <div><strong>🕐 ${expected.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</strong> ➔ ${mvj.DestinationName?.[0]?.value || 'N/A'}</div>
-          <div class="stops-list">${onwardCalls.length > 0 ? onwardCalls.map(c => c.StopPointName?.[0]?.value).join(' • ') : 'Arrêts non disponibles'}</div>
+          <div>
+            ${delayMin > 0 ? `
+              <span style="text-decoration:line-through; color:#888;">${aimed.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>
+              <strong style="color:yellow; margin-left:5px;">${expected.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</strong>
+              <span style="color:#f66; margin-left:5px;">(+${delayMin} min)</span>
+            ` : `
+              <strong>🕐 ${expected.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</strong>
+            `}
+            ➔ ${mvj.DestinationName?.[0]?.value || 'N/A'}
+          </div>
+          ${onwardCalls.length > 0 ? `<div class="stops-list">${onwardCalls.map(c => c.StopPointName?.[0]?.value).join(' • ')}</div>` : ''}
         </div>`;
     });
 
