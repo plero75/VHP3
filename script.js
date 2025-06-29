@@ -10,17 +10,21 @@ async function fetchAndDisplay(url, containerId, updateId) {
     container.innerHTML = '';
 
     const visits = data.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit || [];
+
+    // Déterminer stopId selon le containerId
+    let stopId;
+    if (containerId.includes('rer-a')) stopId = 'STIF:StopArea:SP:43135:';
+    else if (containerId.includes('bus-77')) stopId = 'STIF:StopArea:SP:463641:';
+    else if (containerId.includes('bus-201')) stopId = 'STIF:StopArea:SP:463644:';
+
+    // ➔ Nouveau test pour fallback
+    if (visits.length === 0) {
+      container.innerHTML = '<p>🛑 Aucun passage temps réel, chargement des horaires théoriques...</p>';
+      await displayFallbackSchedule(stopId, containerId);
+      return; // Arrêter ici car pas de temps réel
+    }
+
     const now = new Date();
-
-    let lineKey;
-    if (containerId.includes('rer-a')) lineKey = 'rer-a';
-    else if (containerId.includes('bus-77')) lineKey = 'bus-77';
-    else if (containerId.includes('bus-201')) lineKey = 'bus-201';
-
-    const lastParts = firstLastTimes[lineKey].last.split(':');
-    const lastPassageToday = new Date(now);
-    lastPassageToday.setHours(parseInt(lastParts[0]), parseInt(lastParts[1]), 0, 0);
-    if (parseInt(lastParts[0]) < 5) lastPassageToday.setDate(now.getDate() + 1);
 
     const directions = {};
     visits.forEach(v => {
@@ -33,45 +37,30 @@ async function fetchAndDisplay(url, containerId, updateId) {
     container.innerHTML = '';
     for (const [dir, dirVisits] of Object.entries(directions)) {
       container.innerHTML += `<h3>${dir}</h3>`;
-      const filtered = dirVisits
-        .filter(v => {
-          const expected = new Date(v.MonitoredVehicleJourney.MonitoredCall.ExpectedDepartureTime);
-          return expected <= lastPassageToday;
-        })
-        .slice(0, 4);
+      const filtered = dirVisits.slice(0, 4);
+      filtered.forEach(v => {
+        const mvj = v.MonitoredVehicleJourney;
+        const aimed = new Date(mvj.MonitoredCall.AimedDepartureTime);
+        const expected = new Date(mvj.MonitoredCall.ExpectedDepartureTime);
+        const delay = Math.round((expected - aimed) / 60000);
+        const timeLeft = Math.round((expected - now) / 60000);
 
-      if (filtered.length === 0) {
-        container.innerHTML += '<p>🛑 Aucun passage prévu (service terminé)</p>';
-      } else {
-        filtered.forEach(v => {
-          const mvj = v.MonitoredVehicleJourney;
-          const aimed = new Date(mvj.MonitoredCall.AimedDepartureTime);
-          const expected = new Date(mvj.MonitoredCall.ExpectedDepartureTime);
-          const delay = Math.round((expected - aimed) / 60000);
-          const timeLeft = Math.round((expected - now) / 60000);
+        let status = '';
+        if (mvj.MonitoredCall.DepartureStatus === 'cancelled') {
+          status = '❌ Supprimé';
+        } else if (timeLeft <= 1) {
+          status = '🟢 Imminent';
+        } else if (delay > 0) {
+          status = `⚠️ +${delay} min`;
+        }
 
-          let status = '';
-          if (mvj.MonitoredCall.DepartureStatus === 'cancelled') {
-            status = '❌ Supprimé';
-          } else if (timeLeft <= 1) {
-            status = '🟢 Imminent';
-          } else if (delay > 0) {
-            status = `⚠️ +${delay} min`;
-          }
-
-          let lastService = '';
-          if (Math.abs(expected - lastPassageToday) <= 60000) {
-            lastService = ' 🔴 Dernier service du jour';
-          }
-
-          container.innerHTML += `
-            <div class="passage">
-              <strong>🕐 ${expected.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</strong>
-              <span> (dans ${timeLeft} min) ${status}${lastService}</span>
-            </div>
-          `;
-        });
-      }
+        container.innerHTML += `
+          <div class="passage">
+            <strong>🕐 ${expected.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</strong>
+            <span> (dans ${timeLeft} min) ${status}</span>
+          </div>
+        `;
+      });
     }
 
     document.getElementById(updateId).textContent = `Mise à jour : ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
@@ -112,6 +101,34 @@ const firstLastTimes = {
   "bus-77": { first: "06:05", last: "22:45" },
   "bus-201": { first: "06:15", last: "21:55" }
 };
+async function displayFallbackSchedule(stopId, containerId) {
+  try {
+    const response = await fetch("gtfs-fallback.json");
+    if (!response.ok) throw new Error(`Erreur HTTP ${response.status}`);
+    const data = await response.json();
+
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+    const times = data
+      .filter(entry => entry.stop_id === stopId)
+      .map(entry => {
+        const [h, m] = entry.departure_time.split(":").map(Number);
+        return { time: entry.departure_time, minutes: h * 60 + m };
+      })
+      .filter(entry => entry.minutes >= nowMinutes);
+
+    const container = document.getElementById(containerId);
+    if (times.length > 0) {
+      container.innerHTML += `<p>🕐 Prochain horaire théorique : ${times[0].time}</p>`;
+    } else {
+      container.innerHTML += `<p>🛑 Aucun horaire théorique disponible pour aujourd’hui</p>`;
+    }
+  } catch (err) {
+    console.error(err);
+    document.getElementById(containerId).innerHTML += `<p>❌ Erreur fallback théorique</p>`;
+  }
+}
 
 function displayFirstLast(containerId, lineKey) {
   const container = document.getElementById(containerId);
