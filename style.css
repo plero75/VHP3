@@ -2,23 +2,25 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  background: #101924; /* fond moderne, bleu nuit */
+  background: #101924; /* fond moderne */
   color: #eee;
   font-family: 'Segoe UI', sans-serif;
 }
 
-.dashboard-grid {
-  display: grid;
-  grid-template-areas:
-    "news news news"
-    "rer bus77 bus201"
-    "meteo velib1 velib2";
-  grid-template-columns: 1fr 1fr 1fr;
-  grid-template-rows: auto 1fr 1fr;
-  gap: 12px;
-  height: 100vh;
-  padding: 12px;
-  box-sizing: border-box;
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1e293b;
+  color: #0ff;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.header-bar div {
+  flex: 1;
+  text-align: center;
 }
 
 .news-ticker {
@@ -31,9 +33,23 @@ html, body {
   font-size: 1rem;
   border-radius: 8px;
   animation: news-scroll 20s linear infinite;
+  margin: 12px;
 }
 
 @keyframes news-scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+
+.dashboard-grid {
+  display: grid;
+  grid-template-areas:
+    "rer bus77 bus201"
+    "velib1 velib2 velib2";
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 12px;
+  height: calc(100vh - 120px); /* laisse place au header et news */
+  padding: 12px;
+  box-sizing: border-box;
+}
 
 .block {
   background: #1e293b;
@@ -43,7 +59,7 @@ html, body {
   flex-direction: column;
   overflow: hidden;
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-  min-width: 0; /* evite le débordement */
+  min-width: 0;
 }
 
 .block h2 {
@@ -98,18 +114,15 @@ html, body {
   margin-left: 20px;
 }
 
-/* Responsive portrait / petit écran */
 @media (max-width: 900px) {
   .dashboard-grid {
     grid-template-areas:
-      "news"
       "rer"
       "bus77"
       "bus201"
-      "meteo"
       "velib1"
       "velib2";
     grid-template-columns: 1fr;
-    grid-template-rows: repeat(7, auto);
+    grid-template-rows: repeat(5, auto);
   }
 }
