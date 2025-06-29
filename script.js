@@ -17,20 +17,36 @@ async function fetchWeather(containerId = 'weather-info') {
   } catch (err) { console.error(err); document.getElementById(containerId).innerHTML = '❌ Erreur météo'; }
 }
 
+let newsItems = [];
+let currentNewsIndex = 0;
+
 async function fetchNewsTicker(containerId) {
   const url = 'https://api.rss2json.com/v1/api.json?rss_url=https://www.francetvinfo.fr/titres.rss';
   try {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-    const items = (await response.json()).items || [];
-    document.getElementById(containerId).innerHTML = items.length === 0
-      ? '✅ Aucun article'
-      : items.slice(0,10).map(item => `<span style="margin-right:50px;">📰 ${item.title}</span>`).join('');
+    const data = await response.json();
+    newsItems = data.items || [];
+    if (newsItems.length === 0) {
+      document.getElementById(containerId).innerHTML = '✅ Aucun article';
+      return;
+    }
+    currentNewsIndex = 0;
+    showNewsItem(containerId);
   } catch (err) {
     console.error(err);
     document.getElementById(containerId).textContent = '❌ Erreur actus';
   }
 }
+
+function showNewsItem(containerId) {
+  if (newsItems.length === 0) return;
+  const item = newsItems[currentNewsIndex];
+  document.getElementById(containerId).innerHTML = `<div class="news-item">📰 ${item.title}</div>`;
+  currentNewsIndex = (currentNewsIndex + 1) % newsItems.length;
+  setTimeout(() => showNewsItem(containerId), 4000); // change toutes les 4 sec
+}
+
 
 async function fetchAndDisplay(url, containerId, updateId) {
   try {
