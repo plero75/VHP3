@@ -1,5 +1,37 @@
 const CORS_PROXY = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";
 
+function updateDateTime() {
+  const now = new Date();
+  document.getElementById('datetime').textContent = now.toLocaleString('fr-FR', {
+    weekday: 'long', year: 'numeric', month: 'long',
+    day: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+}
+
+async function fetchWeather(containerId = 'weather-info') {
+  try {
+    const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=48.835&longitude=2.423&current_weather=true');
+    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+    const w = (await response.json()).current_weather;
+    document.getElementById(containerId).innerHTML = `🌡 ${w.temperature}°C • 💨 ${w.windspeed} km/h • ☁️ Code: ${w.weathercode}`;
+  } catch (err) { console.error(err); document.getElementById(containerId).innerHTML = '❌ Erreur météo'; }
+}
+
+async function fetchNewsTicker(containerId) {
+  const url = 'https://api.rss2json.com/v1/api.json?rss_url=https://www.francetvinfo.fr/titres.rss';
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+    const items = (await response.json()).items || [];
+    document.getElementById(containerId).innerHTML = items.length === 0
+      ? '✅ Aucun article'
+      : items.slice(0,10).map(item => `<span style="margin-right:50px;">📰 ${item.title}</span>`).join('');
+  } catch (err) {
+    console.error(err);
+    document.getElementById(containerId).textContent = '❌ Erreur actus';
+  }
+}
+
 async function fetchAndDisplay(url, containerId, updateId) {
   try {
     const response = await fetch(CORS_PROXY + encodeURIComponent(url));
@@ -54,21 +86,6 @@ async function fetchAndDisplay(url, containerId, updateId) {
   }
 }
 
-async function fetchNewsTicker(containerId) {
-  const url = 'https://api.rss2json.com/v1/api.json?rss_url=https://www.francetvinfo.fr/titres.rss';
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-    const items = (await response.json()).items || [];
-    document.getElementById(containerId).innerHTML = items.length === 0
-      ? '✅ Aucun article'
-      : items.slice(0,10).map(item => `<span style="margin-right:50px;">📰 ${item.title}</span>`).join('');
-  } catch (err) {
-    console.error(err);
-    document.getElementById(containerId).textContent = '❌ Erreur actus';
-  }
-}
-
 async function fetchTrafficAlerts(lineRef, containerId) {
   const url = `https://prim.iledefrance-mobilites.fr/marketplace/general-message?LineRef=${encodeURIComponent(lineRef)}`;
   try {
@@ -91,15 +108,6 @@ async function fetchTrafficAlerts(lineRef, containerId) {
   }
 }
 
-async function fetchWeather(containerId) {
-  try {
-    const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=48.835&longitude=2.423&current_weather=true');
-    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-    const w = (await response.json()).current_weather;
-    document.getElementById(containerId).innerHTML = `🌡 ${w.temperature}°C<br>💨 ${w.windspeed} km/h<br>🌥 Code : ${w.weathercode}`;
-  } catch (err) { console.error(err); document.getElementById(containerId).innerHTML = '❌ Erreur météo'; }
-}
-
 async function fetchVelibDirect(url, containerId) {
   try {
     const response = await fetch(url);
@@ -111,6 +119,8 @@ async function fetchVelibDirect(url, containerId) {
 }
 
 function refreshAll() {
+  updateDateTime();
+  fetchWeather();
   fetchNewsTicker('news-ticker');
   fetchAndDisplay('https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:43135:', 'rer-a-passages', 'rer-a-update');
   fetchAndDisplay('https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463641:', 'bus-77-passages', 'bus-77-update');
@@ -118,7 +128,6 @@ function refreshAll() {
   fetchTrafficAlerts('STIF:Line::C01742:', 'rer-a-alerts');
   fetchTrafficAlerts('STIF:Line::C00777:', 'bus-77-alerts');
   fetchTrafficAlerts('STIF:Line::C00201:', 'bus-201-alerts');
-  fetchWeather('weather-data');
   fetchVelibDirect('https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12163)&timezone=Europe%2FParis', 'velib-vincennes-data');
   fetchVelibDirect('https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12128)&timezone=Europe%2FParis', 'velib-breuil-data');
 }
