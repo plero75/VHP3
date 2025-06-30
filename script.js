@@ -144,17 +144,29 @@ async function fetchAndDisplay(url, containerId, updateId) {
   }
 }
 
-// --- Trafic DATEX II filtré "autour hippodrome" ---
+// --- DATEX II dynamique, auto URL ---
+async function getLatestDatex2Url() {
+  const apiUrl = "https://www.data.gouv.fr/api/1/datasets/etat-de-circulation-en-temps-reel-sur-le-reseau-national-routier-non-concede/";
+  const resp = await fetch(apiUrl);
+  const data = await resp.json();
+  const xmls = data.resources.filter(r => r.format === "XML");
+  xmls.sort((a, b) => new Date(b.last_modified) - new Date(a.last_modified));
+  if (xmls.length > 0) return xmls[0].url;
+  return null;
+}
+
 async function fetchDatex2TrafficAutourHippodrome() {
-  const url = "https://static.data.gouv.fr/resources/etat-de-circulation-en-temps-reel-sur-le-reseau-national-routier-non-concede/20230718-142505/etat_traffic_cle_reseau_non_concede.xml";
   const ROUTES_HIPPODROME = [
     "A4", "RN34", "D120", "RN186", "Périphérique", "Vincennes", "Bois de Vincennes"
   ];
-  // Bbox GPS (Vincennes, +-2km)
   const latMin = 48.81, latMax = 48.85, lonMin = 2.41, lonMax = 2.47;
-
   try {
-    const response = await fetch(url);
+    const xmlUrl = await getLatestDatex2Url();
+    if (!xmlUrl) {
+      document.getElementById("traffic-summary").innerHTML = "❌ Impossible de trouver le flux DATEX II";
+      return;
+    }
+    const response = await fetch(CORS_PROXY + encodeURIComponent(xmlUrl));
     if (!response.ok) throw new Error(`HTTP error ${response.status}`);
     const xmlText = await response.text();
     const parser = new DOMParser();
@@ -166,12 +178,10 @@ async function fetchDatex2TrafficAutourHippodrome() {
       const sit = situations[i];
       const location = sit.getElementsByTagName("name")[0]?.textContent || "";
       const description = sit.getElementsByTagName("generalPublicComment")[0]?.textContent || "";
-      // Filtrage texte (routes, "Vincennes"...)
       let matchTexte = ROUTES_HIPPODROME.some(kw =>
         location.toLowerCase().includes(kw.toLowerCase()) ||
         description.toLowerCase().includes(kw.toLowerCase())
       );
-      // Filtrage GPS bbox (si géolocalisé)
       let matchGPS = false;
       const geo = sit.getElementsByTagName("pointCoordinates")[0];
       if (geo) {
@@ -186,7 +196,7 @@ async function fetchDatex2TrafficAutourHippodrome() {
           ${description}
         </div>`;
       }
-      if (nb >= 6) break; // max 6 incidents affichés
+      if (nb >= 6) break;
     }
     if (!result) result = "✅ Aucun incident autour de l’hippodrome";
     document.getElementById("traffic-summary").innerHTML = result;
@@ -195,7 +205,6 @@ async function fetchDatex2TrafficAutourHippodrome() {
     document.getElementById("traffic-summary").innerHTML = "❌ Erreur trafic (flux DATEX II)";
   }
 }
-
 // --- Météo avec icônes locales ---
 function getWeatherIcon(code) {
   const knownCodes = [0,1,2,3,45,48,51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,99];
@@ -235,27 +244,49 @@ async function fetchVelibDirect(url, containerId) {
     document.getElementById(containerId).innerHTML = '❌ Erreur Vélib’';
   }
 }
+const MONITORING_REFS = [
+  { id: "STIF:StopArea:SP:43135:", container: "rer-a-passages", update: "rer-a-update" },
+  { id: "STIF:StopArea:SP:463641:", container: "bus-77-passages", update: "bus-77-update" },
+  { id: "STIF:StopArea:SP:463644:", container: "bus-201-passages", update: "bus-201-update" },
+];
 
-// --- Refresh all ---
+let monitoringRefsChecked = false;
+
+async function checkMonitoringRefsOnce() {
+  if (monitoringRefsChecked) return; // Évite plusieurs vérifications dans la même session
+  monitoringRefsChecked = true;
+  console.log("✅ Vérification des identifiants MonitoringRef en cours...");
+  try {
+    const url = CORS_PROXY + encodeURIComponent('https://prim.iledefrance-mobilites.fr/marketplace/referentiel/stop-areas');
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+    const data = await response.json();
+    const validRefs = data.stop_areas.map(sa => sa.StopAreaId);
+    MONITORING_REFS.forEach(ref => {
+      if (!validRefs.includes(ref.id)) {
+        console.warn(`❗ Attention : l’identifiant ${ref.id} est absent du référentiel actuel. Vérifiez si l’arrêt existe toujours.`);
+      } else {
+        console.log(`✅ Identifiant ${ref.id} validé.`);
+      }
+    });
+  } catch (err) {
+    console.error("❌ Erreur lors de la vérification des MonitoringRefs :", err);
+  }
+}
 function refreshAll() {
+  checkMonitoringRefsOnce(); // Ajoute cette ligne en premier
   updateDateTime();
   fetchNewsTicker('news-ticker');
-  fetchAndDisplay(
-    'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:43135:',
-    'rer-a-passages', 'rer-a-update'
-  );
-  fetchAndDisplay(
-    'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463641:',
-    'bus-77-passages', 'bus-77-update'
-  );
-  fetchAndDisplay(
-    'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463644:',
-    'bus-201-passages', 'bus-201-update'
-  );
+  MONITORING_REFS.forEach(ref => {
+    fetchAndDisplay(
+      `https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=${ref.id}`,
+      ref.container,
+      ref.update
+    );
+  });
   fetchDatex2TrafficAutourHippodrome();
   fetchWeather();
   fetchVelibDirect('https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12163)&timezone=Europe%2FParis', 'velib-vincennes');
   fetchVelibDirect('https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12128)&timezone=Europe%2FParis', 'velib-breuil');
 }
-refreshAll();
-setInterval(refreshAll, 60000);
+
