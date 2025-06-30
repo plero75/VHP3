@@ -181,4 +181,51 @@ async function fetchWeather() {
   }
 }
 function weatherIcon(code) {
-  const knownCodes = [0,1,2,3,45,48,51,53,55,56,57,61,63,65,66,67,71,73,75,77
+  const knownCodes = [0,1,2,3,45,48,51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,99];
+  const file = knownCodes.includes(code) ? `${code}.png` : '0.png';
+  return `<img src="img/${file}" class="weather-icon" alt="météo">`;
+}
+
+// --- Vélib (2 stations) ---
+async function fetchVelibDirect(url, containerId) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+    const stations = await response.json();
+    const s = stations[0];
+    document.getElementById(containerId).innerHTML = `
+      <div class="velib-block">
+        📍 ${s.name}<br>
+        🚲 ${s.numbikesavailable} mécaniques&nbsp;|&nbsp;🔌 ${s.ebike} électriques<br>
+        🅿️ ${s.numdocksavailable} bornes
+      </div>
+    `;
+    document.getElementById('velib-update').textContent = 'Mise à jour : ' + (new Date()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  } catch (err) {
+    document.getElementById(containerId).innerHTML = '❌ Erreur Vélib’';
+  }
+}
+
+// --- Refresh all ---
+function refreshAll() {
+  updateDateTime();
+  fetchNewsTicker('news-ticker');
+  fetchAndDisplay(
+    'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:43135:',
+    'rer-a-passages', 'rer-a-update'
+  );
+  fetchAndDisplay(
+    'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463641:',
+    'bus-77-passages', 'bus-77-update'
+  );
+  fetchAndDisplay(
+    'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=STIF:StopArea:SP:463644:',
+    'bus-201-passages', 'bus-201-update'
+  );
+  fetchTraffic();
+  fetchWeather();
+  fetchVelibDirect('https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12163)&timezone=Europe%2FParis', 'velib-vincennes');
+  fetchVelibDirect('https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12128)&timezone=Europe%2FParis', 'velib-breuil');
+}
+refreshAll();
+setInterval(refreshAll, 60000);
