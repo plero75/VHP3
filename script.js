@@ -304,3 +304,4 @@ function refreshAll() {
   fetchVelibDirect('https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12128)&timezone=Europe%2FParis', 'velib-breuil');
 }
 
+window.addEventListener('load', refreshAll);
