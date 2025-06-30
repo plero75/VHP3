@@ -262,13 +262,17 @@ async function checkMonitoringRefsOnce() {
     if (!response.ok) throw new Error(`HTTP error ${response.status}`);
     const data = await response.json();
     const validRefs = data.stop_areas.map(sa => sa.StopAreaId);
-    MONITORING_REFS.forEach(ref => {
-      if (!validRefs.includes(ref.id)) {
-        console.warn(`❗ Attention : l’identifiant ${ref.id} est absent du référentiel actuel. Vérifiez si l’arrêt existe toujours.`);
-      } else {
-        console.log(`✅ Identifiant ${ref.id} validé.`);
-      }
-    });
+   MONITORING_REFS.forEach(ref => {
+  if (!validRefs.includes(ref.id)) {
+    console.warn(`❗ Attention : l’identifiant ${ref.id} est absent du référentiel actuel. Vérifiez si l’arrêt existe toujours.`);
+    const el = document.getElementById(ref.container);
+    if (el) el.innerHTML = `<div class="erreur-identifiant">
+      ❌ Identifiant invalide : ${ref.id}<br>Vérifiez si l’arrêt existe toujours sur la plateforme IDFM.
+    </div>`;
+  } else {
+    console.log(`✅ Identifiant ${ref.id} validé.`);
+  }
+});
   } catch (err) {
     console.error("❌ Erreur lors de la vérification des MonitoringRefs :", err);
   }
