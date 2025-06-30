@@ -143,34 +143,43 @@ async function fetchAndDisplay(url, containerId, updateId) {
     if (container) container.innerHTML = '❌ Erreur chargement passages';
   }
 }
-
-// --- DATEX II dynamique, auto URL ---
-async function getLatestDatex2Url() {
-  const apiUrl = "https://www.data.gouv.fr/api/1/datasets/etat-de-circulation-en-temps-reel-sur-le-reseau-national-routier-non-concede/";
-  const resp = await fetch(apiUrl);
-  const data = await resp.json();
-  const xmls = data.resources.filter(r => r.format === "XML");
-  xmls.sort((a, b) => new Date(b.last_modified) - new Date(a.last_modified));
-  if (xmls.length > 0) return xmls[0].url;
-  return null;
-}
-
-async function fetchDatex2TrafficAutourHippodrome() {
+async function fetchDatex2TrafficAutourHippodrome(now = new Date()) {
   const ROUTES_HIPPODROME = [
     "A4", "RN34", "D120", "RN186", "Périphérique", "Vincennes", "Bois de Vincennes"
   ];
   const latMin = 48.81, latMax = 48.85, lonMin = 2.41, lonMax = 2.47;
   try {
-    const xmlUrl = await getLatestDatex2Url();
-    if (!xmlUrl) {
-      document.getElementById("traffic-summary").innerHTML = "❌ Impossible de trouver le flux DATEX II";
+    // Étape 1 : récupérer le dernier flux XML DATEX II depuis data.gouv.fr
+    const apiUrl = "https://www.data.gouv.fr/api/1/datasets/etat-de-circulation-en-temps-reel-sur-le-reseau-national-routier-non-concede/";
+    const resp = await fetch(apiUrl);
+    const data = await resp.json();
+    const xmls = data.resources.filter(r => r.format.toLowerCase() === "xml");
+    xmls.sort((a, b) => new Date(b.last_modified) - new Date(a.last_modified));
+    if (xmls.length === 0) {
+      document.getElementById("traffic-summary").innerHTML = "❌ Aucun flux XML trouvé";
       return;
     }
+    const xmlUrl = xmls[0].url;
+
+    // Étape 2 : récupérer le XML DATEX II via le proxy
     const response = await fetch(CORS_PROXY + encodeURIComponent(xmlUrl));
     if (!response.ok) throw new Error(`HTTP error ${response.status}`);
     const xmlText = await response.text();
+
+    // Log de debug pour vérifier le contenu brut
+    console.log("XML brut DATEX II :", xmlText.slice(0, 500));
+
+    // Étape 3 : parser le XML
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+    const parserError = xmlDoc.getElementsByTagName("parsererror");
+    if (parserError.length > 0) {
+      document.getElementById("traffic-summary").innerHTML = "❌ Erreur parsing XML DATEX II";
+      console.error("Erreur parsing XML :", parserError[0].textContent);
+      return;
+    }
+
+    // Étape 4 : analyser les situations
     const situations = xmlDoc.getElementsByTagName("situation");
     let result = "";
     let nb = 0;
@@ -178,10 +187,12 @@ async function fetchDatex2TrafficAutourHippodrome() {
       const sit = situations[i];
       const location = sit.getElementsByTagName("name")[0]?.textContent || "";
       const description = sit.getElementsByTagName("generalPublicComment")[0]?.textContent || "";
-      let matchTexte = ROUTES_HIPPODROME.some(kw =>
+
+      const matchTexte = ROUTES_HIPPODROME.some(kw =>
         location.toLowerCase().includes(kw.toLowerCase()) ||
         description.toLowerCase().includes(kw.toLowerCase())
       );
+
       let matchGPS = false;
       const geo = sit.getElementsByTagName("pointCoordinates")[0];
       if (geo) {
@@ -189,28 +200,27 @@ async function fetchDatex2TrafficAutourHippodrome() {
         const lon = parseFloat(geo.getElementsByTagName("longitude")[0]?.textContent || "0");
         matchGPS = (lat >= latMin && lat <= latMax && lon >= lonMin && lon <= lonMax);
       }
+
       if (matchTexte || matchGPS) {
         nb++;
         result += `<div class="traffic-incident">
-          <b>${location ? location : "Route concernée"}</b><br>
-          ${description}
+          <b>${location || "Route concernée"}</b><br>
+          ${description || "Description indisponible"}
         </div>`;
       }
       if (nb >= 6) break;
     }
+
     if (!result) result = "✅ Aucun incident autour de l’hippodrome";
     document.getElementById("traffic-summary").innerHTML = result;
-    document.getElementById('traffic-update').textContent = "Mise à jour : " + (new Date()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    document.getElementById('traffic-update').textContent = "Mise à jour : " + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
   } catch (err) {
+    console.error("Erreur fetchDatex2TrafficAutourHippodrome :", err);
     document.getElementById("traffic-summary").innerHTML = "❌ Erreur trafic (flux DATEX II)";
   }
 }
-// --- Météo avec icônes locales ---
-function getWeatherIcon(code) {
-  const knownCodes = [0,1,2,3,45,48,51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,99];
-  const file = knownCodes.includes(code) ? `${code}.png` : '0.png';
-  return `<img src="img/${file}" class="weather-icon" alt="météo">`;
-}
+
+ 
 
 async function fetchWeather() {
   try {
