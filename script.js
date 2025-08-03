@@ -254,6 +254,9 @@ async function fetchVelibDirect(url, containerId) {
     document.getElementById(containerId).innerHTML = '❌ Erreur Vélib’';
   }
 }
+  fetchVelibDirect('https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12163)&timezone=Europe%2FParis', 'velib-vincennes');
+  fetchVelibDirect('https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-disponibilite-en-temps-reel/exports/json?lang=fr&qv1=(12128)&timezone=Europe%2FParis', 'velib-breuil');
+
 const MONITORING_REFS = [
   { id: "STIF:StopArea:SP:43135:", container: "rer-a-passages", update: "rer-a-update" },
   { id: "STIF:StopArea:SP:463641:", container: "bus-77-passages", update: "bus-77-update" },
