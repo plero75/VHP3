@@ -1,18 +1,3 @@
-Voici le **script JavaScript complet** (nettoyé, structuré et commenté en français) intégrant **tous les modules** :
-
-* ✅ RER A, Bus 77, Bus 201 via API PRIM (avec proxy)
-* ✅ Groupement par destination
-* ✅ Affichage du service terminé, retards, dernier départ
-* ✅ Météo (Open-Meteo)
-* ✅ Vélib’ (temps réel)
-* ✅ Actus France Info (via rss2json)
-* ✅ Vérification des identifiants MonitoringRef
-
----
-
-### ✅ `script.js` (version complète)
-
-```js
 // === CONFIGURATION GLOBALE ===
 const CORS_PROXY = "https://ratp-proxy.hippodrome-proxy42.workers.dev/?url=";
 const MONITORING_REFS = [
@@ -189,6 +174,3 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchAndDisplay(`https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring?MonitoringRef=${ref.id}`, ref.container, ref.update);
   });
 });
-```
-
-Souhaites-tu que je t’envoie ce script dans un `.zip` prêt à l'emploi avec les fichiers HTML/CSS associés ?
